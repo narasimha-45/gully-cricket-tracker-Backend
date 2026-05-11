@@ -110,8 +110,7 @@ export const processTeamStats = async (match, state, accumulators) => {
 
     teamB.stats.points += 1;
   } else {
-
-  /* =====================================
+    /* =====================================
        WIN / LOSS
     ===================================== */
     const winningTeam = winner === teamA.name ? teamA : teamB;
@@ -136,6 +135,113 @@ export const processTeamStats = async (match, state, accumulators) => {
 
         matchId: match._id,
       };
+    }
+    /* ===================================
+     DEFENDED / CHASE RECORDS
+=================================== */
+
+    const firstInnings = match.innings?.[0];
+
+    const secondInnings = match.innings?.[1];
+
+    if (firstInnings && secondInnings) {
+      const firstBattingTeam =
+        firstInnings.battingTeam === teamA.name ? teamA : teamB;
+
+      const secondBattingTeam =
+        secondInnings.battingTeam === teamA.name ? teamA : teamB;
+
+      const firstRuns = firstInnings.totalRuns || 0;
+
+      const firstWickets = firstInnings.wickets || 0;
+
+      const secondRuns = secondInnings.totalRuns || 0;
+
+      const secondWickets = secondInnings.wickets || 0;
+
+      /* ===================================
+       SUCCESSFUL DEFENCE
+    =================================== */
+
+      if (winningTeam._id.equals(firstBattingTeam._id)) {
+        /* HIGHEST TOTAL DEFENDED */
+
+        if (firstRuns > winningTeam.stats.highestTotalDefended.runs) {
+          winningTeam.stats.highestTotalDefended = {
+            runs: firstRuns,
+
+            wickets: firstWickets,
+
+            againstTeamId: losingTeam._id,
+
+            matchId: match._id,
+          };
+        }
+
+        /* LOWEST TOTAL DEFENDED */
+
+        if (
+          winningTeam.stats.lowestTotalDefended.runs === null ||
+          firstRuns < winningTeam.stats.lowestTotalDefended.runs
+        ) {
+          winningTeam.stats.lowestTotalDefended = {
+            runs: firstRuns,
+
+            wickets: firstWickets,
+
+            againstTeamId: losingTeam._id,
+
+            matchId: match._id,
+          };
+        }
+      }
+
+      /* ===================================
+       SUCCESSFUL CHASE
+    =================================== */
+
+      if (winningTeam._id.equals(secondBattingTeam._id)) {
+        const totalBalls = (match.matchConfig?.overs || 0) * 6;
+
+        const ballsUsed = secondInnings.balls || 0;
+
+        const ballsRemaining = Math.max(totalBalls - ballsUsed, 0);
+
+        /* HIGHEST SUCCESSFUL CHASE */
+
+        if (secondRuns > winningTeam.stats.highestSuccessfulChase.runs) {
+          winningTeam.stats.highestSuccessfulChase = {
+            runs: secondRuns,
+
+            wickets: secondWickets,
+
+            ballsRemaining,
+
+            againstTeamId: losingTeam._id,
+
+            matchId: match._id,
+          };
+        }
+
+        /* LOWEST SUCCESSFUL CHASE */
+
+        if (
+          winningTeam.stats.lowestSuccessfulChase.runs === null ||
+          secondRuns < winningTeam.stats.lowestSuccessfulChase.runs
+        ) {
+          winningTeam.stats.lowestSuccessfulChase = {
+            runs: secondRuns,
+
+            wickets: secondWickets,
+
+            ballsRemaining,
+
+            againstTeamId: losingTeam._id,
+
+            matchId: match._id,
+          };
+        }
+      }
     }
   }
 

@@ -5,9 +5,12 @@ import {
   getPlayerMatches,
   getPlayerSeasonStats,
   searchPlayers,
-  getBattingLeaderboard,
-  getBowlingLeaderboard,
-  getFieldingLeaderboard,
+  getSeasonBattingLeaderboard,
+  getSeasonBowlingLeaderboard,
+  getSeasonFieldingLeaderboard,
+  getOverallBattingLeaderboard,
+  getOverallBowlingLeaderboard,
+  getOverallFieldingLeaderboard,
   getMomLeaderboard,
   getBatterVsBowler,
   getTeamHeadToHead,
@@ -46,23 +49,40 @@ router.get("/player/:name/season/:seasonId", getPlayerSeasonStats);
 
 router.get(
   "/leaderboard/batting/:seasonId",
-  getBattingLeaderboard
+  getSeasonBattingLeaderboard
 );
 
 router.get(
   "/leaderboard/bowling/:seasonId",
-  getBowlingLeaderboard
+  getSeasonBowlingLeaderboard
 );
 
 router.get(
   "/leaderboard/fielding/:seasonId",
-  getFieldingLeaderboard
+  getSeasonFieldingLeaderboard
 );
 
 router.get(
   "/leaderboard/mom/:seasonId",
   getMomLeaderboard
 );
+
+router.get(
+  "/leaderboard/batting",
+  getOverallBattingLeaderboard
+);
+
+router.get(
+  "/leaderboard/bowling",
+  getOverallBowlingLeaderboard
+);
+
+router.get(
+  "/leaderboard/fielding",
+  getOverallFieldingLeaderboard
+);
+
+
 
 
 /* ======================================================

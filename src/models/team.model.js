@@ -125,10 +125,7 @@ const TeamSchema = new mongoose.Schema(
         type: {
           type: String,
 
-          enum: [
-            "RUNS",
-            "WICKETS",
-          ],
+          enum: ["RUNS", "WICKETS"],
 
           default: null,
         },
@@ -189,11 +186,150 @@ const TeamSchema = new mongoose.Schema(
           default: null,
         },
       },
+      /* HIGHEST TOTAL DEFENDED */
+
+      highestTotalDefended: {
+        runs: {
+          type: Number,
+
+          default: 0,
+        },
+
+        wickets: {
+          type: Number,
+
+          default: 0,
+        },
+
+        againstTeamId: {
+          type: mongoose.Schema.Types.ObjectId,
+
+          ref: "Team",
+
+          default: null,
+        },
+
+        matchId: {
+          type: mongoose.Schema.Types.ObjectId,
+
+          ref: "Match",
+
+          default: null,
+        },
+      },
+
+      /* LOWEST TOTAL DEFENDED */
+
+      lowestTotalDefended: {
+        runs: {
+          type: Number,
+
+          default: null,
+        },
+
+        wickets: {
+          type: Number,
+
+          default: null,
+        },
+
+        againstTeamId: {
+          type: mongoose.Schema.Types.ObjectId,
+
+          ref: "Team",
+
+          default: null,
+        },
+
+        matchId: {
+          type: mongoose.Schema.Types.ObjectId,
+
+          ref: "Match",
+
+          default: null,
+        },
+      },
+
+      /* HIGHEST SUCCESSFUL CHASE */
+
+      highestSuccessfulChase: {
+        runs: {
+          type: Number,
+
+          default: 0,
+        },
+
+        wickets: {
+          type: Number,
+
+          default: 0,
+        },
+
+        ballsRemaining: {
+          type: Number,
+
+          default: 0,
+        },
+
+        againstTeamId: {
+          type: mongoose.Schema.Types.ObjectId,
+
+          ref: "Team",
+
+          default: null,
+        },
+
+        matchId: {
+          type: mongoose.Schema.Types.ObjectId,
+
+          ref: "Match",
+
+          default: null,
+        },
+      },
+
+      /* LOWEST SUCCESSFUL CHASE */
+
+      lowestSuccessfulChase: {
+        runs: {
+          type: Number,
+
+          default: null,
+        },
+
+        wickets: {
+          type: Number,
+
+          default: null,
+        },
+
+        ballsRemaining: {
+          type: Number,
+
+          default: 0,
+        },
+
+        againstTeamId: {
+          type: mongoose.Schema.Types.ObjectId,
+
+          ref: "Team",
+
+          default: null,
+        },
+
+        matchId: {
+          type: mongoose.Schema.Types.ObjectId,
+
+          ref: "Match",
+
+          default: null,
+        },
+      },
     },
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 /* =========================================
@@ -207,17 +343,11 @@ TeamSchema.index(
   },
   {
     unique: true,
-  }
+  },
 );
-
 
 /* ========================================= */
 
-const Team =
-  mongoose.models.Team ||
-  mongoose.model(
-    "Team",
-    TeamSchema
-  );
+const Team = mongoose.models.Team || mongoose.model("Team", TeamSchema);
 
 export default Team;

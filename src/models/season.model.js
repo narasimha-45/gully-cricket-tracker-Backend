@@ -1,26 +1,32 @@
 import mongoose from "mongoose";
 
-const seasonSchema = new mongoose.Schema(
-  {
-    seasonName: {
-      type: String,
-      required: true,
-      trim: true,
-    },
+const seasonSchema =
+  new mongoose.Schema(
+    {
+      seasonName: {
+        type: String,
 
-    matches: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Match",
+        required: true,
+
+        trim: true,
       },
-    ],
-  },
-  {
-    timestamps: true,
-  }
-);
+
+      matchesCount: {
+        type: Number,
+
+        default: 0,
+      },
+    },
+    {
+      timestamps: true,
+    }
+  );
 
 const Season =
-  mongoose.models.Season || mongoose.model("Season", seasonSchema);
+  mongoose.models.Season ||
+  mongoose.model(
+    "Season",
+    seasonSchema
+  );
 
 export default Season;
