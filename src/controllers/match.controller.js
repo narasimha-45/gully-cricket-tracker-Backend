@@ -1,57 +1,58 @@
-import { getMatchesBySeason } from "../services/match.service.js";
+import * as matchQueryService from "../services/match/matchQuery.service.js";
+import * as matchCommandService from "../services/match/matchCommand.service.js";
 
-import { processCompletedMatch } from "../services/processCompletedMatch.service.js";
+/* ======================================================
+   COMMON HANDLER
+====================================================== */
 
-export const completeMatch = async (req, res) => {
+const handleResponse = async (res, serviceCall) => {
   try {
-    const match = await processCompletedMatch(req.body);
+    const data = await serviceCall();
 
-    res.status(201).json({
+    return res.json({
       success: true,
-      data: match,
+      data,
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Failed to process completed match",
+      message: err.message,
     });
   }
 };
 
-/**
- * Get completed matches by season
- * GET /api/matches/season/:seasonId
- */
-export const getMatchesBySeasonController = async (req, res) => {
-  try {
-    const { seasonId } = req.params;
+/* ======================================================
+   MATCH CREATE
+====================================================== */
 
-    const matches = await getMatchesBySeason(seasonId);
+export const submitMatch = async (req, res) => {
+  handleResponse(res, () => matchCommandService.createMatch(req.validatedBody));
+}
 
-    res.json({
-      success: true,
-      data: matches,
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch matches",
-    });
-  }
+/* ======================================================
+   SCORECARD
+====================================================== */
+
+export const getMatchScorecard = async (req, res) => {
+  handleResponse(res, () =>
+    matchQueryService.getMatchScorecard(req.params.matchId),
+  );
 };
 
-import Match from "../models/match.model.js";
+/* ======================================================
+   RECENT MATCHES
+====================================================== */
 
-export const getMatchById = async (req, res) => {
-  try {
-    const match = await Match.findById(req.params.matchId);
-    if (!match) {
-      return res.status(404).json({ error: "Match not found" });
-    }
-    res.json(match);
-  } catch (err) {
-    res.status(500).json({ error: "Failed to fetch match" });
-  }
+export const getRecentMatches = async (req, res) => {
+  handleResponse(res, () => matchQueryService.getRecentMatches());
+};
+
+/* ======================================================
+   SEASON MATCHES
+====================================================== */
+
+export const getSeasonMatches = async (req, res) => {
+  handleResponse(res, () =>
+    matchQueryService.getSeasonMatches(req.params.seasonId),
+  );
 };

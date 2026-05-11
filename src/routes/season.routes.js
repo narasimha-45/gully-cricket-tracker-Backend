@@ -1,12 +1,34 @@
 import express from "express";
+
 import {
+ 
+
   createSeasonController,
-  getSeasonsController
+
+  getSeasonsController,
+
 } from "../controllers/season.controller.js";
 
 const router = express.Router();
 
-router.get("/", getSeasonsController);
-router.post("/", createSeasonController);
+/* ======================================================
+   CREATE SEASON
+   POST /api/seasons
+====================================================== */
+
+router.post(
+  "/",
+  createSeasonController
+);
+
+/* ======================================================
+   GET ALL SEASONS
+   GET /api/seasons
+====================================================== */
+
+router.get(
+  "/",
+  getSeasonsController
+);
 
 export default router;

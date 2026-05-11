@@ -1,36 +1,55 @@
-import Team from "../models/team.model.js";
+import * as teamService from "../services/team/teamQuery.service.js";
 
-export const getTeamsBySeason = async (req, res) => {
+/* ======================================================
+   COMMON RESPONSE HANDLER
+====================================================== */
+
+const handleResponse = async (res, serviceCall) => {
   try {
-    const { seasonId } = req.query;
+    const data = await serviceCall();
 
-    if (!seasonId) {
-      return res.status(400).json({
-        success: false,
-        message: "seasonId is required",
-      });
-    }
-
-    const teams = await Team.find({ seasonId })
-      .populate("players", "name") // only player names
-      .lean();
-
-    // flatten players for frontend/offline usage
-    const formatted = teams.map((team) => ({
-      _id: team._id,
-      name: team.name,
-      players: team.players.map((p) => p.name),
-    }));
-
-    res.json({
+    return res.json({
       success: true,
-      data: formatted,
+      data,
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Failed to fetch teams",
+      message: err.message,
     });
   }
+};
+
+/* ======================================================
+   TEAM PROFILE
+====================================================== */
+
+export const getTeamProfile = async (req, res) => {
+  handleResponse(res, () => teamService.getTeamProfile(req.params.teamName));
+};
+
+/* ======================================================
+   TEAM MATCHES
+====================================================== */
+
+export const getTeamMatches = async (req, res) => {
+  handleResponse(res, () =>
+    teamService.getTeamMatches(req.params.teamName, req.query),
+  );
+};
+
+/* ======================================================
+   SEASON TEAMS
+====================================================== */
+
+export const getSeasonTeams = async (req, res) => {
+  handleResponse(res, () => teamService.getSeasonTeams(req.params.seasonId));
+};
+
+/* ======================================================
+   POINTS TABLE
+====================================================== */
+
+export const getPointsTable = async (req, res) => {
+  handleResponse(res, () => teamService.getPointsTable(req.params.seasonId));
 };
