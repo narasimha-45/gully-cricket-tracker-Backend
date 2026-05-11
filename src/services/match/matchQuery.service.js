@@ -85,5 +85,9 @@ export const getSeasonMatches = async (seasonId) => {
     result: match.result,
 
     createdAt: match.createdAt,
+
+    status: match.status,
+
+    innings: match.innings || [],
   }));
 };

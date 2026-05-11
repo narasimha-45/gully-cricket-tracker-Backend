@@ -1,49 +1,34 @@
-import PlayerSeasonStats
-  from "../../models/PlayerSeasonStats.js";
+import { maxLength } from "zod";
+import PlayerSeasonStats from "../../models/PlayerSeasonStats.js";
+import OverallPlayerStats from "../../models/OverallPlayerStats.js";
 
 /* ======================================================
    HELPERS
 ====================================================== */
 
-const getDerivedStats = (
-  stats
-) => {
+const getDerivedStats = (stats) => {
   /* BATTING */
 
   const battingAverage =
     stats.batting.outs > 0
-      ? (
-          stats.batting.runs /
-          stats.batting.outs
-        ).toFixed(2)
+      ? (stats.batting.runs / stats.batting.outs).toFixed(2)
       : 0;
 
   const strikeRate =
     stats.batting.balls > 0
-      ? (
-          (stats.batting.runs /
-            stats.batting.balls) *
-          100
-        ).toFixed(2)
+      ? ((stats.batting.runs / stats.batting.balls) * 100).toFixed(2)
       : 0;
 
   /* BOWLING */
 
   const economy =
     stats.bowling.balls > 0
-      ? (
-          (stats.bowling.runs /
-            stats.bowling.balls) *
-          6
-        ).toFixed(2)
+      ? ((stats.bowling.runs / stats.bowling.balls) * 6).toFixed(2)
       : 0;
 
   const bowlingAverage =
     stats.bowling.wickets > 0
-      ? (
-          stats.bowling.runs /
-          stats.bowling.wickets
-        ).toFixed(2)
+      ? (stats.bowling.runs / stats.bowling.wickets).toFixed(2)
       : 0;
 
   return {
@@ -58,145 +43,182 @@ const getDerivedStats = (
    ORANGE CAP
 ====================================================== */
 
-export const getBattingLeaderboard =
-  async (seasonId) => {
-    const players =
-      await PlayerSeasonStats.find({
-        seasonId,
-      })
-        .sort({
-          "batting.runs": -1,
-        })
-        .limit(20)
-        .lean();
+export const getSeasonBattingLeaderboard = async (seasonId) => {
+  const players = await PlayerSeasonStats.find({
+    seasonId,
+  })
+    .sort({
+      "batting.runs": -1,
+    })
+    .limit(20)
+    .lean();
 
-    return players.map(
-      (player) => ({
-        name: player.name,
+  return players.map((player) => ({
+    name: player.name,
 
-        runs:
-          player.batting.runs,
+    runs: player.batting.runs,
 
-        innings:
-          player.batting.innings,
+    innings: player.batting.innings,
 
-        highestScore:
-          player.batting
-            .highestScore.runs,
+    highestScore: player.batting.highestScore.runs,
 
-        fours:
-          player.batting.fours,
+    fours: player.batting.fours,
 
-        sixes:
-          player.batting.sixes,
+    sixes: player.batting.sixes,
 
-        derived:
-          getDerivedStats(
-            player
-          ),
-      })
-    );
-  };
+    ducks: player.batting.ducks,
+
+    derived: getDerivedStats(player),
+  }));
+};
+
+export const getOverallBattingLeaderboard = async () => {
+  const players = await OverallPlayerStats.find({})
+    .sort({
+      "batting.runs": -1,
+    })
+    .limit(20)
+    .lean();
+  return players.map((player) => ({
+    name: player.name,
+
+    runs: player.batting.runs,
+
+    innings: player.batting.innings,
+
+    highestScore: player.batting.highestScore.runs,
+
+    fours: player.batting.fours,
+
+    sixes: player.batting.sixes,
+
+    ducks: player.batting.ducks,
+
+    derived: getDerivedStats(player),
+  }));
+};
 
 /* ======================================================
    PURPLE CAP
 ====================================================== */
 
-export const getBowlingLeaderboard =
-  async (seasonId) => {
-    const players =
-      await PlayerSeasonStats.find({
-        seasonId,
-      })
-        .sort({
-          "bowling.wickets": -1,
-        })
-        .limit(20)
-        .lean();
+export const getSeasonBowlingLeaderboard = async (seasonId) => {
+  const players = await PlayerSeasonStats.find({
+    seasonId,
+  })
+    .sort({
+      "bowling.wickets": -1,
+    })
+    .limit(20)
+    .lean();
 
-    return players.map(
-      (player) => ({
-        name: player.name,
+  return players.map((player) => ({
+    name: player.name,
 
-        wickets:
-          player.bowling
-            .wickets,
+    wickets: player.bowling.wickets,
 
-        maidens:
-          player.bowling
-            .maidens,
+    innings: player.bowling.innings,
 
-        bestBowling:
-          player.bowling
-            .bestBowling,
+    balls: player.bowling.balls,
 
-        derived:
-          getDerivedStats(
-            player
-          ),
-      })
-    );
-  };
+    maidens: player.bowling.maidens,
+
+    bestBowling: player.bowling.bestBowling,
+
+    derived: getDerivedStats(player),
+  }));
+};
+
+export const getOverallBowlingLeaderboard = async () => {
+  const players = await OverallPlayerStats.find({})
+    .sort({
+      "bowling.wickets": -1,
+    })
+    .limit(20)
+    .lean();
+
+  return players.map((player) => ({
+    name: player.name,
+
+    wickets: player.bowling.wickets,
+
+    innings: player.bowling.innings,
+
+    balls: player.bowling.balls,
+
+    maidens: player.bowling.maidens,
+
+    bestBowling: player.bowling.bestBowling,
+
+    derived: getDerivedStats(player),
+  }));
+};
 
 /* ======================================================
    FIELDING LEADERBOARD
 ====================================================== */
 
-export const getFieldingLeaderboard =
-  async (seasonId) => {
-    const players =
-      await PlayerSeasonStats.find({
-        seasonId,
-      })
-        .sort({
-          "fielding.catches": -1,
-        })
-        .limit(20)
-        .lean();
+export const getSeasonFieldingLeaderboard = async (seasonId) => {
+  const players = await PlayerSeasonStats.find({
+    seasonId,
+  })
+    .sort({
+      "fielding.catches": -1,
+    })
+    .limit(20)
+    .lean();
 
-    return players.map(
-      (player) => ({
-        name: player.name,
+  return players.map((player) => ({
+    name: player.name,
 
-        catches:
-          player.fielding
-            .catches,
+    catches: player.fielding.catches,
 
-        stumpings:
-          player.fielding
-            .stumpings,
+    stumpings: player.fielding.stumpings,
 
-        runOuts:
-          player.fielding
-            .runOuts,
-      })
-    );
-  };
+    runOuts: player.fielding.runOuts,
+
+    manOfTheMatch: player.achievements.mom,
+  }));
+};
+
+export const getOverallFieldingLeaderboard = async () => {
+  const players = await OverallPlayerStats.find({})
+    .sort({
+      "fielding.catches": -1,
+    })
+    .limit(20)
+    .lean();
+
+  return players.map((player) => ({
+    name: player.name,
+
+    catches: player.fielding.catches,
+
+    stumpings: player.fielding.stumpings,
+
+    runOuts: player.fielding.runOuts,
+
+    manOfTheMatch: player.achievements.mom,
+  }));
+};
 
 /* ======================================================
    MOM LEADERBOARD
 ====================================================== */
 
-export const getMomLeaderboard =
-  async (seasonId) => {
-    const players =
-      await PlayerSeasonStats.find({
-        seasonId,
-      })
-        .sort({
-          "achievements.mom": -1,
-        })
-        .limit(20)
-        .lean();
+export const getOverallMomLeaderboard = async (seasonId) => {
+  const players = await PlayerSeasonStats.find({
+    seasonId,
+  })
+    .sort({
+      "achievements.mom": -1,
+    })
+    .limit(20)
+    .lean();
 
-    return players.map(
-      (player) => ({
-        name: player.name,
+  return players.map((player) => ({
+    name: player.name,
 
-        mom:
-          player.achievements
-            .mom,
-      })
-    );
-  };
-
+    mom: player.achievements.mom,
+  }));
+};
