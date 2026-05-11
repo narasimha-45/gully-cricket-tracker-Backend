@@ -1,84 +1,128 @@
-import Match from "../models/match.model.js";
+import * as playerStatsService from "../services/stats/playerStats.service.js";
+import * as leaderboardService from "../services/stats/leaderboard.service.js";
+import * as rivalryService from "../services/stats/rivalry.service.js";
 
-import Player from "../models/player.model.js";
+/* ======================================================
+   BATTER VS BOWLER
+====================================================== */
 
-export const getSeasonBattingStats = async (req, res) => {
+export const getBatterVsBowler = async (req, res) => {
+  handleResponse(res, () => rivalryService.getBatterVsBowler(req.query));
+};
+
+/* ======================================================
+   TEAM HEAD TO HEAD
+====================================================== */
+
+export const getTeamHeadToHead = async (req, res) => {
+  handleResponse(res, () => rivalryService.getTeamHeadToHead());
+};
+
+/* ======================================================
+   PLAYER HEAD TO HEAD
+====================================================== */
+
+export const getPlayerHeadToHead = async (req, res) => {
+  handleResponse(res, () => rivalryService.getPlayerHeadToHead());
+};
+
+/* ======================================================
+   COMMON RESPONSE HANDLER
+====================================================== */
+
+const handleResponse = async (res, serviceCall) => {
   try {
-    const { seasonId } = req.params;
+    const data = await serviceCall();
 
-    const players = await Player.find({
-      seasonId,
-      "batting.innings": { $gt: 0 },
-    })
-      .sort({ "batting.runs": -1 })
-      .lean();
-
-    res.json({
+    return res.json({
       success: true,
-      data: players.map((p) => ({
-        name: p.name,
-        ...p.batting,
-      })),
+      data,
     });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false });
+    return res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
 
+/* ======================================================
+   PLAYER PROFILE
+====================================================== */
 
-
-export const getSeasonBowlingStats = async (req, res) => {
-  try {
-    const { seasonId } = req.params;
-
-    const players = await Player.find({
-      seasonId,
-      "bowling.innings": { $gt: 0 },
-    })
-      .sort({ "bowling.wickets": -1 })
-      .lean();
-
-    res.json({
-      success: true,
-      data: players.map((p) => ({
-        name: p.name,
-        ...p.bowling,
-      })),
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false });
-  }
+export const getPlayerProfile = async (req, res) => {
+  handleResponse(res, () =>
+    playerStatsService.getPlayerProfile(req.params.name),
+  );
 };
 
+/* ======================================================
+   PLAYER MATCHES
+====================================================== */
 
-export const getSeasonMiscStats = async (req, res) => {
-  try {
-    const { seasonId } = req.params;
-
-    const players = await Player.find({
-      seasonId
-    }).sort({
-        "misc.manOfTheMatch": -1,
-        "misc.catches": -1,
-        "misc.runOuts": -1,
-      })
-      .lean();
-
-    res.json({
-      success: true,
-      data: players.map((p) => ({
-        name: p.name,
-
-        catches: p.misc?.catches || 0,
-        runOuts: p.misc?.runOuts || 0,
-        mom: p.misc?.mom || 0,
-      })),
-    });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false });
-  }
+export const getPlayerMatches = async (req, res) => {
+  handleResponse(res, () =>
+    playerStatsService.getPlayerMatches(req.params.name, req.query),
+  );
 };
 
+/* ======================================================
+   PLAYER SEASON STATS
+====================================================== */
+
+export const getPlayerSeasonStats = async (req, res) => {
+  handleResponse(res, () =>
+    playerStatsService.getPlayerSeasonStats(
+      req.params.name,
+      req.params.seasonId,
+    ),
+  );
+};
+
+/* ======================================================
+   SEARCH PLAYERS
+====================================================== */
+
+export const searchPlayers = async (req, res) => {
+  handleResponse(res, () => playerStatsService.searchPlayers(req.query.q));
+};
+
+/* ======================================================
+   BATTING LEADERBOARD
+====================================================== */
+
+export const getBattingLeaderboard = async (req, res) => {
+  handleResponse(res, () =>
+    leaderboardService.getBattingLeaderboard(req.params.seasonId),
+  );
+};
+
+/* ======================================================
+   BOWLING LEADERBOARD
+====================================================== */
+
+export const getBowlingLeaderboard = async (req, res) => {
+  handleResponse(res, () =>
+    leaderboardService.getBowlingLeaderboard(req.params.seasonId),
+  );
+};
+
+/* ======================================================
+   FIELDING LEADERBOARD
+====================================================== */
+
+export const getFieldingLeaderboard = async (req, res) => {
+  handleResponse(res, () =>
+    leaderboardService.getFieldingLeaderboard(req.params.seasonId),
+  );
+};
+
+/* ======================================================
+   MOM LEADERBOARD
+====================================================== */
+
+export const getMomLeaderboard = async (req, res) => {
+  handleResponse(res, () =>
+    leaderboardService.getMomLeaderboard(req.params.seasonId),
+  );
+};
