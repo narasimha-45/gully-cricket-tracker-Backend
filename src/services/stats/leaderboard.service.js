@@ -161,7 +161,6 @@ export const getSeasonFieldingLeaderboard = async (seasonId) => {
     .sort({
       "fielding.catches": -1,
     })
-
     .lean();
 
   return players.map((player) => ({
