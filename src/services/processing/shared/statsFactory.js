@@ -9,7 +9,6 @@ export const createEmptyStats = () => {
     totalMatches: 0,
 
     batting: {
-      matches: 0,
       innings: 0,
       outs: 0,
       notOuts: 0,
@@ -43,7 +42,6 @@ export const createEmptyStats = () => {
     },
 
     bowling: {
-      matches: 0,
       innings: 0,
 
       balls: 0,

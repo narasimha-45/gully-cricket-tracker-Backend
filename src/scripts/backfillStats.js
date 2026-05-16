@@ -29,9 +29,7 @@ const GenericSchema = new mongoose.Schema({}, { strict: false });
 ========================================================= */
 
 const OldSeason = oldConnection.model("Season", GenericSchema, "seasons");
-
 const OldTeam = oldConnection.model("Team", GenericSchema, "teams");
-
 const OldMatch = oldConnection.model("Match", GenericSchema, "matches");
 
 /* =========================================================
@@ -39,9 +37,7 @@ const OldMatch = oldConnection.model("Match", GenericSchema, "matches");
 ========================================================= */
 
 const Season = mongoose.model("Season", GenericSchema, "seasons");
-
 const Team = mongoose.model("Team", GenericSchema, "teams");
-
 const Match = mongoose.model("Match", GenericSchema, "matches");
 
 const PlayerSeasonStats = mongoose.model(
@@ -74,6 +70,20 @@ const PlayerMatchPerformance = mongoose.model(
 
 const norm = (v) => (v || "").trim().toLowerCase();
 
+function renameTeam(name) {
+  const normalized = norm(name);
+
+  if (normalized === "lokesh team" || normalized === "lokesh's team") {
+    return "eagles";
+  }
+
+  if (normalized === "narasimha team" || normalized === "narasimha's team") {
+    return "spider";
+  }
+
+  return normalized;
+}
+
 function scoreBuckets() {
   return Array(11).fill(0);
 }
@@ -83,26 +93,24 @@ function getBucket(runs) {
   return Math.floor(runs / 10);
 }
 
+function ballsToOvers(balls) {
+  return Math.floor(balls / 6) + (balls % 6 > 0 ? (balls % 6) / 10 : 0);
+}
+
 function dismissalKey(type) {
   switch (type) {
     case "BOWLED":
       return "bowled";
-
     case "CAUGHT":
       return "caught";
-
     case "LBW":
       return "lbw";
-
     case "STUMPED":
       return "stumped";
-
     case "HIT_WICKET":
       return "hitWicket";
-
     case "RUN_OUT":
       return "runOut";
-
     default:
       return null;
   }
@@ -115,7 +123,6 @@ function createStats(extra = {}) {
     totalMatches: 0,
 
     batting: {
-      matches: 0,
       innings: 0,
       outs: 0,
       notOuts: 0,
@@ -149,7 +156,6 @@ function createStats(extra = {}) {
     },
 
     bowling: {
-      matches: 0,
       innings: 0,
 
       balls: 0,
@@ -197,6 +203,16 @@ function inc(obj, key, value = 1) {
   obj[key] = (obj[key] || 0) + value;
 }
 
+function incNested(obj, key1, key2) {
+  if (!obj[key1]) obj[key1] = { total: 0 };
+  if (typeof obj[key1] === "number") {
+    // Migration fallback if somehow it was a number
+    obj[key1] = { total: obj[key1] };
+  }
+  obj[key1].total = (obj[key1].total || 0) + 1;
+  obj[key1][key2] = (obj[key1][key2] || 0) + 1;
+}
+
 /* =========================================================
    MEMORY AGGREGATORS
 ========================================================= */
@@ -215,13 +231,7 @@ function getSeasonStats(seasonId, name) {
   const key = `${seasonId}_${name}`;
 
   if (!seasonStatsMap.has(key)) {
-    seasonStatsMap.set(
-      key,
-      createStats({
-        seasonId,
-        name,
-      }),
-    );
+    seasonStatsMap.set(key, createStats({ seasonId, name }));
   }
 
   return seasonStatsMap.get(key);
@@ -229,12 +239,7 @@ function getSeasonStats(seasonId, name) {
 
 function getOverallStats(name) {
   if (!overallStatsMap.has(name)) {
-    overallStatsMap.set(
-      name,
-      createStats({
-        name,
-      }),
-    );
+    overallStatsMap.set(name, createStats({ name }));
   }
 
   return overallStatsMap.get(name);
@@ -260,10 +265,7 @@ function getPerformance(matchId, name) {
   const key = `${matchId}_${name}`;
 
   if (!performanceMap.has(key)) {
-    performanceMap.set(key, {
-      matchId,
-      name,
-    });
+    performanceMap.set(key, { matchId, name });
   }
 
   return performanceMap.get(key);
@@ -288,73 +290,90 @@ async function migrateRawData() {
 
   const teams = await OldTeam.find({}).lean();
 
-  const updatedTeams = teams.map((team) => ({
-    ...team,
+  const mergedTeamsMap = new Map();
 
-    stats: {
-      played: 0,
-      wins: 0,
-      losses: 0,
-      ties: 0,
-      noResults: 0,
-      points: 0,
+  for (const team of teams) {
+    const renamed = renameTeam(team.name);
+    const key = `${team.seasonId}_${renamed}`;
 
-      runsScored: 0,
-      wicketsLost: 0,
-      ballsFaced: 0,
+    if (!mergedTeamsMap.has(key)) {
+      mergedTeamsMap.set(key, {
+        ...team,
 
-      runsConceded: 0,
-      wicketsTaken: 0,
-      ballsBowled: 0,
+        name: renamed,
 
-      biggestWin: {
-        margin: 0,
-        type: null,
-        matchId: null,
-      },
+        stats: {
+          played: 0,
+          wins: 0,
+          losses: 0,
+          ties: 0,
+          noResults: 0,
+          points: 0,
 
-      highestScore: {
-        runs: 0,
-        wickets: 0,
-        matchId: null,
-      },
+          runsScored: 0,
+          wicketsLost: 0,
+          ballsFaced: 0,
 
-      lowestScore: {
-        runs: null,
-        wickets: null,
-        matchId: null,
-      },
-      highestTotalDefended: {
-        runs: 0,
-        wickets: 0,
-        againstTeamId: null,
-        matchId: null,
-      },
+          runsConceded: 0,
+          wicketsTaken: 0,
+          ballsBowled: 0,
 
-      lowestTotalDefended: {
-        runs: null,
-        wickets: null,
-        againstTeamId: null,
-        matchId: null,
-      },
+          biggestWin: {
+            margin: 0,
+            type: null,
+            matchId: null,
+          },
 
-      highestSuccessfulChase: {
-        runs: 0,
-        wickets: 0,
-        ballsRemaining: 0,
-        againstTeamId: null,
-        matchId: null,
-      },
+          highestScore: { runs: 0, wickets: 0, overs: 0, matchId: null },
+          lowestScore: { runs: null, wickets: null, overs: 0, matchId: null },
 
-      lowestSuccessfulChase: {
-        runs: null,
-        wickets: null,
-        ballsRemaining: 0,
-        againstTeamId: null,
-        matchId: null,
-      },
-    },
-  }));
+          // REPLACE the 6 defended/chase records with these:
+          defending: {
+            wins: [], // matchIds where they batted first and won
+            losses: [], // matchIds where they batted first and lost
+          },
+
+          chasing: {
+            wins: [], // matchIds where they batted second and won
+            losses: [], // matchIds where they batted second and lost
+          },
+
+          highestTotalDefended: {
+            runs: 0,
+            wickets: 0,
+            overs: 0,
+            againstTeamId: null,
+            matchId: null,
+          },
+          lowestTotalDefended: {
+            runs: null,
+            wickets: 0,
+            overs: 0,
+            againstTeamId: null,
+            matchId: null,
+          },
+          highestSuccessfulChase: {
+            runs: 0,
+            wickets: 0,
+            overs: 0,
+            ballsRemaining: 0,
+            againstTeamId: null,
+            matchId: null,
+          },
+          lowestSuccessfulChase: {
+            runs: null,
+            wickets: 0,
+            overs: 0,
+            ballsRemaining: 0,
+            againstTeamId: null,
+            matchId: null,
+          },
+        },
+      });
+    }
+  }
+
+  const updatedTeams = Array.from(mergedTeamsMap.values());
 
   if (updatedTeams.length) {
     await Team.insertMany(updatedTeams);
@@ -371,8 +390,36 @@ async function migrateRawData() {
 
   const matches = await OldMatch.find({}).lean();
 
-  if (matches.length) {
-    await Match.insertMany(matches);
+  const updatedMatches = matches.map((match) => ({
+    ...match,
+
+    teams: {
+      teamA: {
+        ...match.teams.teamA,
+        name: renameTeam(match.teams.teamA.name),
+      },
+      teamB: {
+        ...match.teams.teamB,
+        name: renameTeam(match.teams.teamB.name),
+      },
+    },
+
+    innings: (match.innings || []).map((innings) => ({
+      ...innings,
+      battingTeam: renameTeam(innings.battingTeam),
+      bowlingTeam: renameTeam(innings.bowlingTeam),
+    })),
+
+    result: match.result
+      ? {
+          ...match.result,
+          winner: renameTeam(match.result.winner),
+        }
+      : match.result,
+  }));
+
+  if (updatedMatches.length) {
+    await Match.insertMany(updatedMatches);
   }
 
   console.log(`✅ Matches: ${matches.length}`);
@@ -399,6 +446,7 @@ function updateTeamStats(match) {
     const runs = innings.totalRuns || 0;
     const wickets = innings.wickets || 0;
     const balls = innings.balls || 0;
+    const overs = ballsToOvers(balls);
 
     battingTeam.stats.runsScored += runs;
     battingTeam.stats.wicketsLost += wickets;
@@ -412,6 +460,7 @@ function updateTeamStats(match) {
       battingTeam.stats.highestScore = {
         runs,
         wickets,
+        overs,
         matchId: match._id,
       };
     }
@@ -423,6 +472,7 @@ function updateTeamStats(match) {
       battingTeam.stats.lowestScore = {
         runs,
         wickets,
+        overs,
         matchId: match._id,
       };
     }
@@ -456,12 +506,10 @@ function updateTeamStats(match) {
   const normalizedWinner = norm(winner);
 
   const winTeam = normalizedWinner === norm(teamA.name) ? teamA : teamB;
-
   const loseTeam = normalizedWinner === norm(teamA.name) ? teamB : teamA;
 
   winTeam.stats.wins += 1;
   loseTeam.stats.losses += 1;
-
   winTeam.stats.points += 2;
 
   if (match.result.margin > winTeam.stats.biggestWin.margin) {
@@ -471,9 +519,10 @@ function updateTeamStats(match) {
       matchId: match._id,
     };
   }
+
   /* =====================================================
-   DEFENDED / CHASE RECORDS
-===================================================== */
+     DEFENDED / CHASE RECORDS
+  ===================================================== */
 
   const firstInnings = match.innings?.[0];
   const secondInnings = match.innings?.[1];
@@ -489,27 +538,28 @@ function updateTeamStats(match) {
 
     const firstRuns = firstInnings.totalRuns || 0;
     const firstWickets = firstInnings.wickets || 0;
+    const firstBalls = firstInnings.balls || 0;
+    const firstOvers = ballsToOvers(firstBalls);
 
     const secondRuns = secondInnings.totalRuns || 0;
     const secondWickets = secondInnings.wickets || 0;
+    const secondBalls = secondInnings.balls || 0;
+    const secondOvers = ballsToOvers(secondBalls);
 
     /* ================================================
-     SUCCESSFUL DEFENCE
-  ================================================ */
+       SUCCESSFUL DEFENCE
+    ================================================ */
 
     if (winTeam._id.toString() === firstBatTeam?._id.toString()) {
-      // Highest Total Defended
-
       if (firstRuns > winTeam.stats.highestTotalDefended.runs) {
         winTeam.stats.highestTotalDefended = {
           runs: firstRuns,
           wickets: firstWickets,
+          overs: firstOvers,
           againstTeamId: loseTeam._id,
           matchId: match._id,
         };
       }
-
-      // Lowest Total Defended
 
       if (
         winTeam.stats.lowestTotalDefended.runs === null ||
@@ -518,36 +568,46 @@ function updateTeamStats(match) {
         winTeam.stats.lowestTotalDefended = {
           runs: firstRuns,
           wickets: firstWickets,
+          overs: firstOvers,
           againstTeamId: loseTeam._id,
           matchId: match._id,
         };
       }
     }
 
+    if (winTeam._id.toString() === firstBatTeam?._id.toString()) {
+      // win team batted first → defended successfully
+      winTeam.stats.defending.wins.push(match._id);
+      loseTeam.stats.chasing.losses.push(match._id);
+
+      // highest/lowest total defended (existing logic)...
+    } else if (winTeam._id.toString() === secondBatTeam?._id.toString()) {
+      // win team batted second → chased successfully
+      winTeam.stats.chasing.wins.push(match._id);
+      loseTeam.stats.defending.losses.push(match._id);
+
+      // highest/lowest successful chase (existing logic)...
+    }
+
     /* ================================================
-     SUCCESSFUL CHASE
-  ================================================ */
+       SUCCESSFUL CHASE
+    ================================================ */
 
     if (winTeam._id.toString() === secondBatTeam?._id.toString()) {
       const totalBalls = (match.matchConfig?.overs || 0) * 6;
-
       const ballsUsed = secondInnings.balls || 0;
-
       const ballsRemaining = Math.max(totalBalls - ballsUsed, 0);
-
-      // Highest Successful Chase
 
       if (secondRuns > winTeam.stats.highestSuccessfulChase.runs) {
         winTeam.stats.highestSuccessfulChase = {
           runs: secondRuns,
           wickets: secondWickets,
+          overs: secondOvers,
           ballsRemaining,
           againstTeamId: loseTeam._id,
           matchId: match._id,
         };
       }
-
-      // Lowest Successful Chase
 
       if (
         winTeam.stats.lowestSuccessfulChase.runs === null ||
@@ -556,12 +616,26 @@ function updateTeamStats(match) {
         winTeam.stats.lowestSuccessfulChase = {
           runs: secondRuns,
           wickets: secondWickets,
+          overs: secondOvers,
           ballsRemaining,
           againstTeamId: loseTeam._id,
           matchId: match._id,
         };
       }
     }
+  }
+}
+
+/* =========================================================
+   PROFILE HELPERS
+========================================================= */
+
+function addSeasonToProfile(profile, seasonId) {
+  const already = profile.seasonsPlayed.some(
+    (id) => id.toString() === seasonId.toString(),
+  );
+  if (!already) {
+    profile.seasonsPlayed.push(seasonId);
   }
 }
 
@@ -586,39 +660,28 @@ function processMatch(match) {
       const name = norm(rawName);
 
       const seasonStats = getSeasonStats(match.seasonId, name);
-
       const overallStats = getOverallStats(name);
-
       const profile = getProfile(name);
-
       const perf = getPerformance(match._id, name);
 
       const runs = batter.runs || 0;
       const balls = batter.balls || 0;
       const fours = batter.fours || 0;
       const sixes = batter.sixes || 0;
-
       const dismissal = batter.dismissal || null;
-
       const didBat = balls > 0 || runs > 0;
-
       const isOut = !!dismissal;
 
       if (!processedPlayers.has(name)) {
         processedPlayers.add(name);
-
         seasonStats.totalMatches += 1;
         overallStats.totalMatches += 1;
-
         profile.totalMatches += 1;
       }
 
-      if (!profile.seasonsPlayed.includes(match.seasonId)) {
-        profile.seasonsPlayed.push(match.seasonId);
-      }
+      addSeasonToProfile(profile, match.seasonId);
 
       const battingTeamName = norm(battingTeam);
-
       if (!profile.teamsPlayedFor.includes(battingTeamName)) {
         profile.teamsPlayedFor.push(battingTeamName);
       }
@@ -626,29 +689,23 @@ function processMatch(match) {
       profile.lastMatchAt = match.createdAt;
 
       for (const stats of [seasonStats, overallStats]) {
-        stats.batting.matches += 1;
-
         if (didBat) {
           stats.batting.innings += 1;
-        }
+          stats.batting.runs += runs;
+          stats.batting.balls += balls;
+          stats.batting.fours += fours;
+          stats.batting.sixes += sixes;
 
-        stats.batting.runs += runs;
-        stats.batting.balls += balls;
+          if (isOut) {
+            stats.batting.outs += 1;
+          } else {
+            stats.batting.notOuts += 1;
+          }
 
-        stats.batting.fours += fours;
-        stats.batting.sixes += sixes;
+          if (isOut && runs === 0) {
+            stats.batting.ducks += 1;
+          }
 
-        if (isOut) {
-          stats.batting.outs += 1;
-        } else {
-          stats.batting.notOuts += 1;
-        }
-
-        if (didBat && isOut && runs === 0) {
-          stats.batting.ducks += 1;
-        }
-
-        if (didBat) {
           stats.batting.scoreRanges[getBucket(runs)] += 1;
         }
 
@@ -662,14 +719,19 @@ function processMatch(match) {
 
         if (dismissal?.type) {
           const key = dismissalKey(dismissal.type);
-
           if (key && stats.batting.dismissalTypes[key] !== undefined) {
             stats.batting.dismissalTypes[key] += 1;
           }
         }
 
-        if (dismissal?.bowler) {
-          inc(stats.batting.dismissedBy, norm(dismissal.bowler));
+        if (
+          dismissal?.bowler &&
+          dismissal?.type &&
+          dismissal.type !== "RUN_OUT"
+        ) {
+          const bName = norm(dismissal.bowler);
+          const dType = dismissalKey(dismissal.type) || "other";
+          incNested(stats.batting.dismissedBy, bName, dType);
         }
       }
 
@@ -682,9 +744,7 @@ function processMatch(match) {
 
       perf.matchId = match._id;
       perf.seasonId = match.seasonId;
-
       perf.matchDate = match.createdAt;
-
       perf.playedFor = battingTeam;
       perf.opponent = bowlingTeam;
 
@@ -695,14 +755,11 @@ function processMatch(match) {
         balls,
         fours,
         sixes,
-        dismissal: dismissal || {
-          type: "NOT_OUT",
-        },
+        dismissal: dismissal || { type: "NOT_OUT" },
       };
 
       perf.result = {
-        won: match.result?.winner === battingTeam,
-
+        won: norm(match.result?.winner) === norm(battingTeam),
         mom: mom === name,
       };
     }
@@ -717,31 +774,24 @@ function processMatch(match) {
       const name = norm(rawName);
 
       const seasonStats = getSeasonStats(match.seasonId, name);
-
       const overallStats = getOverallStats(name);
-
       const profile = getProfile(name);
-
       const perf = getPerformance(match._id, name);
 
       const balls = bowler.balls || 0;
       const runs = bowler.runs || 0;
       const wickets = bowler.wickets || 0;
-
       const maidens = bowler.maidens || 0;
 
       if (!processedPlayers.has(name)) {
         processedPlayers.add(name);
-
         seasonStats.totalMatches += 1;
         overallStats.totalMatches += 1;
-
         profile.totalMatches += 1;
       }
 
-      if (!profile.seasonsPlayed.includes(match.seasonId)) {
-        profile.seasonsPlayed.push(match.seasonId);
-      }
+      addSeasonToProfile(profile, match.seasonId);
+
       const bowlingTeamName = norm(bowlingTeam);
       if (!profile.teamsPlayedFor.includes(bowlingTeamName)) {
         profile.teamsPlayedFor.push(bowlingTeamName);
@@ -749,78 +799,93 @@ function processMatch(match) {
 
       profile.lastMatchAt = match.createdAt;
 
-      for (const stats of [seasonStats, overallStats]) {
-        stats.bowling.matches += 1;
+      /* =====================================================
+         BOWLING ANALYTICS & WICKET COUNT
+      ===================================================== */
 
+      let actualWickets = 0;
+
+      for (const [batterName, dismissal] of Object.entries(
+        innings.dismissals || {},
+      )) {
+        if (!dismissal) continue;
+        if (norm(dismissal.bowler) !== name) continue;
+        if (dismissal.type === "RUN_OUT") continue;
+
+        actualWickets += 1;
+
+        const key = dismissalKey(dismissal.type);
+
+        if (key && seasonStats.bowling.wicketTypes[key] !== undefined) {
+          seasonStats.bowling.wicketTypes[key] += 1;
+          overallStats.bowling.wicketTypes[key] += 1;
+        }
+
+        const bName = norm(batterName);
+        const dType = dismissalKey(dismissal.type) || "other";
+        incNested(seasonStats.bowling.dismissedBatters, bName, dType);
+        incNested(overallStats.bowling.dismissedBatters, bName, dType);
+
+        if (!perf.bowling) perf.bowling = {};
+        if (!perf.bowling.dismissedBatters) perf.bowling.dismissedBatters = [];
+
+        perf.bowling.dismissedBatters.push({
+          name: norm(batterName),
+          type: dismissal.type,
+        });
+      }
+
+      for (const stats of [seasonStats, overallStats]) {
         if (balls > 0) {
           stats.bowling.innings += 1;
         }
 
         stats.bowling.balls += balls;
         stats.bowling.runs += runs;
-
-        stats.bowling.wickets += wickets;
-
+        stats.bowling.wickets += actualWickets;
         stats.bowling.maidens += maidens;
 
         const best = stats.bowling.bestBowling;
 
         if (
-          wickets > best.wickets ||
-          (wickets === best.wickets && runs < best.runs)
+          actualWickets > best.wickets ||
+          (actualWickets === best.wickets && runs < best.runs)
         ) {
           stats.bowling.bestBowling = {
-            wickets,
+            wickets: actualWickets,
             runs,
             matchId: match._id,
             seasonId: match.seasonId,
           };
         }
 
-        if (wickets >= 3) {
-          stats.bowling.wicketHauls.w3 += 1;
-        }
-
-        if (wickets >= 4) {
-          stats.bowling.wicketHauls.w4 += 1;
-        }
-
-        if (wickets >= 5) {
-          stats.bowling.wicketHauls.w5 += 1;
-        }
+        if (actualWickets >= 3) stats.bowling.wicketHauls.w3 += 1;
+        if (actualWickets >= 4) stats.bowling.wicketHauls.w4 += 1;
+        if (actualWickets >= 5) stats.bowling.wicketHauls.w5 += 1;
       }
 
-      for (const [batterName, dismissal] of Object.entries(
-        innings.dismissals || {},
-      )) {
-        if (!dismissal) continue;
+      if (!perf.playedFor) {
+        perf.playedFor = bowlingTeam;
+        perf.opponent = battingTeam;
+        perf.matchDate = match.createdAt;
+        perf.matchId = match._id;
+        perf.seasonId = match.seasonId;
+      }
 
-        if (norm(dismissal.bowler) !== name) {
-          continue;
-        }
-
-        if (dismissal.type === "RUN_OUT") {
-          continue;
-        }
-
-        const key = dismissalKey(dismissal.type);
-
-        if (key && seasonStats.bowling.wicketTypes[key] !== undefined) {
-          seasonStats.bowling.wicketTypes[key] += 1;
-
-          overallStats.bowling.wicketTypes[key] += 1;
-        }
-
-        inc(seasonStats.bowling.dismissedBatters, norm(batterName));
-
-        inc(overallStats.bowling.dismissedBatters, norm(batterName));
+      if (!perf.result) {
+        const mom = norm(match.result?.manOfTheMatch);
+        perf.result = {
+          won: norm(match.result?.winner) === norm(bowlingTeam),
+          mom: mom === name,
+        };
       }
 
       perf.bowling = {
+        ...perf.bowling,
         bowled: balls > 0,
         balls,
         runs,
-        wickets,
+        wickets: actualWickets,
         maidens,
       };
     }
@@ -833,9 +898,7 @@ function processMatch(match) {
       if (!dismissal?.fielder) continue;
 
       const name = norm(dismissal.fielder);
-
       const seasonStats = getSeasonStats(match.seasonId, name);
-
       const overallStats = getOverallStats(name);
 
       switch (dismissal.type) {
@@ -869,9 +932,7 @@ async function bulkSave() {
     await Team.bulkWrite(
       Array.from(teamMap.values()).map((team) => ({
         replaceOne: {
-          filter: {
-            _id: team._id,
-          },
+          filter: { _id: team._id },
           replacement: team,
         },
       })),
@@ -906,19 +967,13 @@ async function bulkSave() {
 async function backfill() {
   console.log("🚀 Starting Backfill");
 
-  const matches = await Match.find({})
-    .sort({
-      createdAt: 1,
-    })
-    .lean();
+  const matches = await Match.find({}).sort({ createdAt: 1 }).lean();
 
   console.log(`📦 Total Matches: ${matches.length}`);
 
   for (const match of matches) {
     await Season.findByIdAndUpdate(match.seasonId, {
-      $inc: {
-        matchesCount: 1,
-      },
+      $inc: { matchesCount: 1 },
     });
     updateTeamStats(match);
     processMatch(match);
@@ -950,7 +1005,6 @@ async function main() {
     console.log("✅ DB Cleared");
 
     await migrateRawData();
-
     await backfill();
 
     console.log("🎉 ALL DONE");

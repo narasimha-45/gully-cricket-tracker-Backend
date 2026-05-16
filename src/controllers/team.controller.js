@@ -1,4 +1,5 @@
 import * as teamService from "../services/team/teamQuery.service.js";
+import * as teamStandingsService from "../services/team/teamStandings.service.js";
 
 /* ======================================================
    COMMON RESPONSE HANDLER
@@ -18,6 +19,14 @@ const handleResponse = async (res, serviceCall) => {
       message: err.message,
     });
   }
+};
+
+/* ======================================================
+   TEAM STANDINGS
+====================================================== */
+
+export const getTeamStandings = async (req, res) => {
+  handleResponse(res, () => teamStandingsService.getTeamStandings(req.query.seasonId));
 };
 
 /* ======================================================

@@ -9,10 +9,6 @@ import mongoose from "mongoose";
 const BattingSchema =
   new mongoose.Schema(
     {
-      matches: {
-        type: Number,
-        default: 0,
-      },
 
       innings: {
         type: Number,
@@ -136,11 +132,7 @@ const BattingSchema =
 const BowlingSchema =
   new mongoose.Schema(
     {
-      matches: {
-        type: Number,
-        default: 0,
-      },
-
+      
       innings: {
         type: Number,
         default: 0,

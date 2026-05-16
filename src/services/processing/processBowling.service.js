@@ -2,6 +2,7 @@ import {
   normalizeName,
   normalizeDismissalType,
   incrementMapValue,
+  incrementNestedValue,
 } from "./shared/helpers.js";
 
 import { createEmptyStats } from "./shared/statsFactory.js";
@@ -78,67 +79,11 @@ export const processBowling = async (match, state, accumulators) => {
       }
 
       /* ===================================
-           UPDATE BOTH STATS
+           DISMISSAL ANALYTICS & WICKET COUNT
         =================================== */
 
-      for (const stats of [overallStats, seasonStats]) {
-        /* MATCHES */
-
-        stats.bowling.matches += 1;
-
-        /* INNINGS */
-
-        if (balls > 0) {
-          stats.bowling.innings += 1;
-        }
-
-        /* BASIC */
-
-        stats.bowling.balls += balls;
-
-        stats.bowling.runs += runs;
-
-        stats.bowling.wickets += wickets;
-
-        stats.bowling.maidens += maidens;
-
-        /* BEST BOWLING */
-
-        const currentBest = stats.bowling.bestBowling;
-
-        const shouldReplace =
-          wickets > currentBest.wickets ||
-          (wickets === currentBest.wickets && runs < currentBest.runs);
-
-        if (shouldReplace) {
-          stats.bowling.bestBowling = {
-            wickets,
-            runs,
-
-            matchId: match._id,
-
-            seasonId: match.seasonId,
-          };
-        }
-
-        /* WICKET HAULS */
-
-        if (wickets >= 3) {
-          stats.bowling.wicketHauls.w3 += 1;
-        }
-
-        if (wickets >= 4) {
-          stats.bowling.wicketHauls.w4 += 1;
-        }
-
-        if (wickets >= 5) {
-          stats.bowling.wicketHauls.w5 += 1;
-        }
-      }
-
-      /* ===================================
-           DISMISSAL ANALYTICS
-        =================================== */
+      let actualWickets = 0;
+      const bowlingBreakdown = [];
 
       for (const [batterRaw, dismissal] of Object.entries(
         innings.dismissals || {},
@@ -148,34 +93,70 @@ export const processBowling = async (match, state, accumulators) => {
         const dismissalBowler = normalizeName(dismissal.bowler);
 
         /* ONLY THIS BOWLER */
+        if (dismissalBowler !== name) continue;
 
-        if (dismissalBowler !== name) {
-          continue;
-        }
+        /* RUN OUTS DONT COUNT FOR BOWLER */
+        if (dismissal.type === "RUN_OUT") continue;
 
-        /* RUN OUT */
-
-        if (dismissal.type === "RUN_OUT") {
-          continue;
-        }
+        actualWickets += 1;
 
         const key = normalizeDismissalType(dismissal.type);
 
         for (const stats of [overallStats, seasonStats]) {
           /* WICKET TYPE */
-
           if (key && stats.bowling.wicketTypes[key] !== undefined) {
             stats.bowling.wicketTypes[key] += 1;
           }
 
           /* DISMISSED BATTERS */
-
-          incrementMapValue(
+          incrementNestedValue(
             stats.bowling.dismissedBatters,
-
             normalizeName(batterRaw),
+            key || "other",
           );
         }
+
+        bowlingBreakdown.push({
+          name: normalizeName(batterRaw),
+          type: dismissal.type,
+        });
+      }
+
+      /* ===================================
+           UPDATE BOTH STATS
+        =================================== */
+
+      for (const stats of [overallStats, seasonStats]) {
+        /* INNINGS */
+        if (balls > 0) {
+          stats.bowling.innings += 1;
+        }
+
+        /* BASIC */
+        stats.bowling.balls += balls;
+        stats.bowling.runs += runs;
+        stats.bowling.wickets += actualWickets; // Use our calculated count
+        stats.bowling.maidens += maidens;
+
+        /* BEST BOWLING */
+        const currentBest = stats.bowling.bestBowling;
+        const shouldReplace =
+          actualWickets > currentBest.wickets ||
+          (actualWickets === currentBest.wickets && runs < currentBest.runs);
+
+        if (shouldReplace) {
+          stats.bowling.bestBowling = {
+            wickets: actualWickets,
+            runs,
+            matchId: match._id,
+            seasonId: match.seasonId,
+          };
+        }
+
+        /* WICKET HAULS */
+        if (actualWickets >= 3) stats.bowling.wicketHauls.w3 += 1;
+        if (actualWickets >= 4) stats.bowling.wicketHauls.w4 += 1;
+        if (actualWickets >= 5) stats.bowling.wicketHauls.w5 += 1;
       }
 
       /* ===================================
@@ -209,14 +190,11 @@ export const processBowling = async (match, state, accumulators) => {
 
               bowling: {
                 bowled: balls > 0,
-
                 balls,
-
                 maidens,
-
                 runs,
-
-                wickets,
+                wickets: actualWickets,
+                dismissedBatters: bowlingBreakdown,
               },
             },
           },

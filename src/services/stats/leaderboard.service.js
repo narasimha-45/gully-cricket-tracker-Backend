@@ -6,7 +6,7 @@ import OverallPlayerStats from "../../models/OverallPlayerStats.js";
    HELPERS
 ====================================================== */
 
-const getDerivedStats = (stats) => {
+export const getDerivedStats = (stats) => {
   /* BATTING */
 
   const battingAverage =
@@ -207,7 +207,6 @@ export const getOverallMomLeaderboard = async (seasonId) => {
     .sort({
       "achievements.mom": -1,
     })
-    .limit(20)
     .lean();
 
   return players.map((player) => ({
