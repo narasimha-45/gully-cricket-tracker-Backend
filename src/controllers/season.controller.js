@@ -34,7 +34,7 @@ export const createSeasonController =
   async (req, res) => {
     handleResponse(res, () =>
       seasonCommandService.createSeason(
-        req.validatedBody
+        req.body.seasonName
       )
     );
   };
