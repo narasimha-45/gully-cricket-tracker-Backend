@@ -3,6 +3,7 @@ import {
   getScoreBucket,
   normalizeDismissalType,
   incrementMapValue,
+  incrementNestedValue,
 } from "./shared/helpers.js";
 
 import { createEmptyStats } from "./shared/statsFactory.js";
@@ -89,10 +90,6 @@ export const processBatting = async (match, state, accumulators) => {
         =================================== */
 
       for (const stats of [overallStats, seasonStats]) {
-        /* MATCHES */
-
-        stats.batting.matches += 1;
-
         /* INNINGS */
 
         if (didBat) {
@@ -155,11 +152,11 @@ export const processBatting = async (match, state, accumulators) => {
 
         /* DISMISSED BY */
 
-        if (dismissal?.bowler) {
-          incrementMapValue(
+        if (dismissal?.bowler && dismissal?.type && dismissal.type !== "RUN_OUT") {
+          incrementNestedValue(
             stats.batting.dismissedBy,
-
             normalizeName(dismissal.bowler),
+            normalizeDismissalType(dismissal.type) || "other",
           );
         }
       }

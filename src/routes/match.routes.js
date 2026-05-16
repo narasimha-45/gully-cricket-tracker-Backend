@@ -11,11 +11,27 @@ import { matchSchema } from "../validations/match.validation.js";
 
 const router = express.Router();
 
-/* ======================================================
-   SUBMIT COMPLETED MATCH
-   POST /api/matches/submit
-====================================================== */
-
+/**
+ * @swagger
+ * /api/matches/submit:
+ *   post:
+ *     summary: Submit a completed match
+ *     tags: [Matches]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               matchInfo:
+ *                 type: object
+ *               innings:
+ *                 type: array
+ *     responses:
+ *       201:
+ *         description: Match submitted successfully
+ */
 router.post(
   "/submit",
 
@@ -24,25 +40,52 @@ router.post(
   submitMatch,
 );
 
-/* ======================================================
-   RECENT MATCHES
-   GET /api/matches/recent
-====================================================== */
-
+/**
+ * @swagger
+ * /api/matches/recent:
+ *   get:
+ *     summary: Get recent matches
+ *     tags: [Matches]
+ *     responses:
+ *       200:
+ *         description: List of recent matches
+ */
 router.get("/recent", getRecentMatches);
 
-/* ======================================================
-   MATCHES BY SEASON
-   GET /api/matches/season/:seasonId
-====================================================== */
-
+/**
+ * @swagger
+ * /api/matches/season/{seasonId}:
+ *   get:
+ *     summary: Get matches by season
+ *     tags: [Matches]
+ *     parameters:
+ *       - in: path
+ *         name: seasonId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: List of matches in the season
+ */
 router.get("/season/:seasonId", getSeasonMatches);
 
-/* ======================================================
-   FULL MATCH SCORECARD
-   GET /api/matches/:matchId
-====================================================== */
-
+/**
+ * @swagger
+ * /api/matches/{matchId}:
+ *   get:
+ *     summary: Get full match scorecard
+ *     tags: [Matches]
+ *     parameters:
+ *       - in: path
+ *         name: matchId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Match scorecard details
+ */
 router.get("/:matchId", getMatchScorecard);
 
 export default router;

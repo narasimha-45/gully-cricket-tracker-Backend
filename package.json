@@ -13,6 +13,8 @@
     "dotenv": "^16.6.1",
     "express": "^5.2.1",
     "mongoose": "^9.1.2",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
     "zod": "^4.4.3"
   },
   "devDependencies": {

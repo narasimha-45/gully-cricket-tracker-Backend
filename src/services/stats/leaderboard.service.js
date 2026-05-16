@@ -6,7 +6,7 @@ import OverallPlayerStats from "../../models/OverallPlayerStats.js";
    HELPERS
 ====================================================== */
 
-const getDerivedStats = (stats) => {
+export const getDerivedStats = (stats) => {
   /* BATTING */
 
   const battingAverage =
@@ -50,7 +50,6 @@ export const getSeasonBattingLeaderboard = async (seasonId) => {
     .sort({
       "batting.runs": -1,
     })
-    .limit(20)
     .lean();
 
   return players.map((player) => ({
@@ -77,7 +76,6 @@ export const getOverallBattingLeaderboard = async () => {
     .sort({
       "batting.runs": -1,
     })
-    .limit(20)
     .lean();
   return players.map((player) => ({
     name: player.name,
@@ -109,7 +107,6 @@ export const getSeasonBowlingLeaderboard = async (seasonId) => {
     .sort({
       "bowling.wickets": -1,
     })
-    .limit(20)
     .lean();
 
   return players.map((player) => ({
@@ -134,7 +131,6 @@ export const getOverallBowlingLeaderboard = async () => {
     .sort({
       "bowling.wickets": -1,
     })
-    .limit(20)
     .lean();
 
   return players.map((player) => ({
@@ -165,7 +161,7 @@ export const getSeasonFieldingLeaderboard = async (seasonId) => {
     .sort({
       "fielding.catches": -1,
     })
-    .limit(20)
+
     .lean();
 
   return players.map((player) => ({
@@ -186,7 +182,6 @@ export const getOverallFieldingLeaderboard = async () => {
     .sort({
       "fielding.catches": -1,
     })
-    .limit(20)
     .lean();
 
   return players.map((player) => ({
@@ -213,7 +208,6 @@ export const getOverallMomLeaderboard = async (seasonId) => {
     .sort({
       "achievements.mom": -1,
     })
-    .limit(20)
     .lean();
 
   return players.map((player) => ({

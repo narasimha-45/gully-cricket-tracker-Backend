@@ -153,17 +153,23 @@ export const getPlayerSeasonStats =
         name: normalize(name),
       }).lean();
 
+    const playerProfile = await PlayerProfile.findOne({ name: normalize(name) }).lean();
+    if (!playerProfile) {
+      throw new Error("Player not found");
+    }
+
     if (!stats) {
-      throw new Error(
-        "Player season stats not found"
-      );
+      return {
+        profile: playerProfile,
+        stats: null,
+        derived: null,
+      };
     }
 
     return {
+      profile: playerProfile,
       stats,
-
-      derived:
-        getDerivedStats(stats),
+      derived: getDerivedStats(stats),
     };
   };
 

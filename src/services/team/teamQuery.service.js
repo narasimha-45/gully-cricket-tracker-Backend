@@ -118,3 +118,99 @@ export const getPointsTable = async (seasonId) => {
       return b.derived.netRunRate - a.derived.netRunRate;
     });
 };
+export const getGlobalTeamProfile = async (teamName) => {
+  const teams = await Team.find({ name: teamName }).lean();
+  
+  if (teams.length === 0) {
+    throw new Error("Team not found");
+  }
+
+  // Aggregate stats
+  const stats = {
+    played: 0,
+    wins: 0,
+    losses: 0,
+    ties: 0,
+    runsScored: 0,
+    wicketsLost: 0,
+    ballsFaced: 0,
+    runsConceded: 0,
+    wicketsTaken: 0,
+    ballsBowled: 0,
+    points: 0,
+    highestScore: { runs: 0, wickets: 0, overs: 0 },
+    lowestScore: { runs: 9999, wickets: 0, overs: 0 },
+    defending: { wins: [], losses: [] },
+    chasing: { wins: [], losses: [] },
+    highestTotalDefended: { runs: 0, wickets: 0, overs: 0 },
+    lowestTotalDefended: { runs: 9999, wickets: 0, overs: 0 },
+    highestSuccessfulChase: { runs: 0, wickets: 0, overs: 0 },
+    lowestSuccessfulChase: { runs: 9999, wickets: 0, overs: 0 },
+    biggestWin: { margin: 0, type: null }
+  };
+
+  teams.forEach(t => {
+    const s = t.stats;
+    stats.played += s.played || 0;
+    stats.wins += s.wins || 0;
+    stats.losses += s.losses || 0;
+    stats.ties += s.ties || 0;
+    stats.runsScored += s.runsScored || 0;
+    stats.wicketsLost += s.wicketsLost || 0;
+    stats.ballsFaced += s.ballsFaced || 0;
+    stats.runsConceded += s.runsConceded || 0;
+    stats.wicketsTaken += s.wicketsTaken || 0;
+    stats.ballsBowled += s.ballsBowled || 0;
+    stats.points += s.points || 0;
+
+    if (s.highestScore?.runs > stats.highestScore.runs) stats.highestScore = s.highestScore;
+    if (s.lowestScore?.runs && s.lowestScore.runs < stats.lowestScore.runs) stats.lowestScore = s.lowestScore;
+    
+    if (s.defending) {
+      stats.defending.wins.push(...(s.defending.wins || []));
+      stats.defending.losses.push(...(s.defending.losses || []));
+    }
+    if (s.chasing) {
+      stats.chasing.wins.push(...(s.chasing.wins || []));
+      stats.chasing.losses.push(...(s.chasing.losses || []));
+    }
+
+    if (s.highestTotalDefended?.runs > stats.highestTotalDefended.runs) stats.highestTotalDefended = s.highestTotalDefended;
+    if (s.lowestTotalDefended?.runs && s.lowestTotalDefended.runs < stats.lowestTotalDefended.runs) stats.lowestTotalDefended = s.lowestTotalDefended;
+    
+    if (s.highestSuccessfulChase?.runs > stats.highestSuccessfulChase.runs) stats.highestSuccessfulChase = s.highestSuccessfulChase;
+    if (s.lowestSuccessfulChase?.runs && s.lowestSuccessfulChase.runs < stats.lowestSuccessfulChase.runs) stats.lowestSuccessfulChase = s.lowestSuccessfulChase;
+
+    if (s.biggestWin?.margin > stats.biggestWin.margin) stats.biggestWin = s.biggestWin;
+  });
+
+  // Cleanup 9999s
+  if (stats.lowestScore.runs === 9999) stats.lowestScore.runs = 0;
+  if (stats.lowestTotalDefended.runs === 9999) stats.lowestTotalDefended.runs = 0;
+  if (stats.lowestSuccessfulChase.runs === 9999) stats.lowestSuccessfulChase.runs = 0;
+
+  // Derived
+  const nrr = stats.ballsFaced > 0 && stats.ballsBowled > 0
+    ? (stats.runsScored / (stats.ballsFaced / 6) - stats.runsConceded / (stats.ballsBowled / 6)).toFixed(2)
+    : 0;
+
+  const battingSR = stats.ballsFaced > 0 ? ((stats.runsScored / stats.ballsFaced) * 100).toFixed(2) : 0;
+  const economy = stats.ballsBowled > 0 ? ((stats.runsConceded / stats.ballsBowled) * 6).toFixed(2) : 0;
+  
+  const ballsToOvers = (b) => `${Math.floor(b / 6)}.${b % 6}`;
+
+  return {
+    profile: {
+      name: teamName,
+      seasonsCount: teams.length,
+    },
+    stats,
+    derived: {
+      nrr,
+      battingSR,
+      economy,
+      oversFaced: ballsToOvers(stats.ballsFaced),
+      oversBowled: ballsToOvers(stats.ballsBowled),
+    }
+  };
+};

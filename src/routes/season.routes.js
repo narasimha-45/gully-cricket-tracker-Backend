@@ -11,20 +11,35 @@ import {
 
 const router = express.Router();
 
-/* ======================================================
-   CREATE SEASON
-   POST /api/seasons
-====================================================== */
-
+/**
+ * @swagger
+ * /api/seasons:
+ *   post:
+ *     summary: Create a new season
+ *     tags: [Seasons]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               name:
+ *                 type: string
+ *     responses:
+ *       201:
+ *         description: Season created successfully
+ *   get:
+ *     summary: Get all seasons
+ *     tags: [Seasons]
+ *     responses:
+ *       200:
+ *         description: List of all seasons
+ */
 router.post(
   "/",
   createSeasonController
 );
-
-/* ======================================================
-   GET ALL SEASONS
-   GET /api/seasons
-====================================================== */
 
 router.get(
   "/",

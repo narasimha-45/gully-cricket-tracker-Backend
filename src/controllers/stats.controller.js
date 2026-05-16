@@ -1,6 +1,20 @@
 import * as playerStatsService from "../services/stats/playerStats.service.js";
 import * as leaderboardService from "../services/stats/leaderboard.service.js";
 import * as rivalryService from "../services/stats/rivalry.service.js";
+import * as teamService from "../services/team/teamQuery.service.js";
+import * as teamStatsService from "../services/stats/teamStats.service.js";
+
+/* ======================================================
+   TEAM PROFILE
+====================================================== */
+
+export const getTeamProfile = async (req, res) => {
+  handleResponse(res, () => teamStatsService.getTeamProfile(req.params.idOrName, req.query));
+};
+
+export const searchTeams = async (req, res) => {
+  handleResponse(res, () => teamStatsService.searchTeams(req.query.q));
+};
 
 /* ======================================================
    BATTER VS BOWLER
@@ -23,7 +37,7 @@ export const getTeamHeadToHead = async (req, res) => {
 ====================================================== */
 
 export const getPlayerHeadToHead = async (req, res) => {
-  handleResponse(res, () => rivalryService.getPlayerHeadToHead());
+  handleResponse(res, () => rivalryService.getPlayerHeadToHead(req.query));
 };
 
 /* ======================================================

@@ -2,209 +2,217 @@
 
 import mongoose from "mongoose";
 
-const PlayerMatchPerformanceSchema =
-  new mongoose.Schema(
-    {
-      /* PLAYER */ 
+const PlayerMatchPerformanceSchema = new mongoose.Schema(
+  {
+    /* PLAYER */
 
-      name: {
-        type: String,
+    name: {
+      type: String,
 
-        required: true,
+      required: true,
 
-        trim: true,
+      trim: true,
 
-        lowercase: true,
+      lowercase: true,
+    },
+
+    /* MATCH INFO */
+
+    matchId: {
+      type: mongoose.Schema.Types.ObjectId,
+
+      ref: "Match",
+
+      required: true,
+    },
+
+    seasonId: {
+      type: mongoose.Schema.Types.ObjectId,
+
+      ref: "Season",
+
+      required: true,
+    },
+
+    matchDate: {
+      type: Date,
+
+      required: true,
+    },
+
+    /* TEAM INFO */
+
+    playedFor: {
+      type: String,
+
+      required: true,
+
+      trim: true,
+    },
+
+    opponent: {
+      type: String,
+
+      required: true,
+
+      trim: true,
+    },
+
+    /* RESULT */
+
+    result: {
+      won: {
+        type: Boolean,
+
+        default: false,
       },
 
-      /* MATCH INFO */
+      mom: {
+        type: Boolean,
 
-      matchId: {
-        type: mongoose.Schema.Types.ObjectId,
+        default: false,
+      },
+    },
 
-        ref: "Match",
+    /* BATTING */
 
-        required: true,
+    batting: {
+      played: {
+        type: Boolean,
+
+        default: false,
       },
 
-      seasonId: {
-        type: mongoose.Schema.Types.ObjectId,
+      innings: {
+        type: Boolean,
 
-        ref: "Season",
-
-        required: true,
+        default: false,
       },
 
-      matchDate: {
-        type: Date,
+      runs: {
+        type: Number,
 
-        required: true,
+        default: 0,
       },
 
-      /* TEAM INFO */
+      balls: {
+        type: Number,
 
-      playedFor: {
-        type: String,
-
-        required: true,
-
-        trim: true,
+        default: 0,
       },
 
-      opponent: {
-        type: String,
+      fours: {
+        type: Number,
 
-        required: true,
-
-        trim: true,
+        default: 0,
       },
 
-      /* RESULT */
+      sixes: {
+        type: Number,
 
-      result: {
-        won: {
-          type: Boolean,
-
-          default: false,
-        },
-
-        mom: {
-          type: Boolean,
-
-          default: false,
-        },
+        default: 0,
       },
 
-      /* BATTING */
+      dismissal: {
+        type: {
+          type: String,
 
-      batting: {
-        played: {
-          type: Boolean,
+          enum: [
+            "BOWLED",
+            "CAUGHT",
+            "LBW",
+            "RUN_OUT",
+            "STUMPED",
+            "HIT_WICKET",
+            "NOT_OUT",
+          ],
 
-          default: false,
+          default: "NOT_OUT",
         },
 
-        innings: {
-          type: Boolean,
+        bowler: {
+          type: String,
 
-          default: false,
+          default: null,
         },
 
-        runs: {
-          type: Number,
+        fielder: {
+          type: String,
 
-          default: 0,
-        },
-
-        balls: {
-          type: Number,
-
-          default: 0,
-        },
-
-        fours: {
-          type: Number,
-
-          default: 0,
-        },
-
-        sixes: {
-          type: Number,
-
-          default: 0,
-        },
-
-        dismissal: {
-          type: {
-            type: String,
-
-            enum: [
-              "BOWLED",
-              "CAUGHT",
-              "LBW",
-              "RUN_OUT",
-              "STUMPED",
-              "HIT_WICKET",
-              "NOT_OUT",
-            ],
-
-            default: "NOT_OUT",
-          },
-
-          bowler: {
-            type: String,
-
-            default: null,
-          },
-
-          fielder: {
-            type: String,
-
-            default: null,
-          },
-        },
-      },
-
-      /* BOWLING */
-
-      bowling: {
-        bowled: {
-          type: Boolean,
-
-          default: false,
-        },
-
-        balls: {
-          type: Number,
-
-          default: 0,
-        },
-
-        maidens: {
-          type: Number,
-
-          default: 0,
-        },
-
-        runs: {
-          type: Number,
-
-          default: 0,
-        },
-
-        wickets: {
-          type: Number,
-
-          default: 0,
-        },
-      },
-
-      /* FIELDING */
-
-      fielding: {
-        catches: {
-          type: Number,
-
-          default: 0,
-        },
-
-        runOuts: {
-          type: Number,
-
-          default: 0,
-        },
-
-        stumpings: {
-          type: Number,
-
-          default: 0,
+          default: null,
         },
       },
     },
-    {
-      timestamps: true,
-    }
-  );
+
+    /* BOWLING */
+
+    bowling: {
+      bowled: {
+        type: Boolean,
+
+        default: false,
+      },
+
+      balls: {
+        type: Number,
+
+        default: 0,
+      },
+
+      maidens: {
+        type: Number,
+
+        default: 0,
+      },
+
+      runs: {
+        type: Number,
+
+        default: 0,
+      },
+
+      wickets: {
+        type: Number,
+
+        default: 0,
+      },
+      dismissedBatters: [
+        {
+          name: { type: String, trim: true, lowercase: true },
+          type: {
+            type: String,
+            enum: ["BOWLED", "CAUGHT", "LBW", "STUMPED", "HIT_WICKET"],
+          },
+        },
+      ],
+    },
+
+    /* FIELDING */
+
+    fielding: {
+      catches: {
+        type: Number,
+
+        default: 0,
+      },
+
+      runOuts: {
+        type: Number,
+
+        default: 0,
+      },
+
+      stumpings: {
+        type: Number,
+
+        default: 0,
+      },
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
 
 /* =========================================
    INDEXES
@@ -219,7 +227,7 @@ PlayerMatchPerformanceSchema.index(
   },
   {
     unique: true,
-  }
+  },
 );
 
 /* PLAYER HISTORY */
@@ -263,11 +271,7 @@ PlayerMatchPerformanceSchema.index({
 /* ========================================= */
 
 const PlayerMatchPerformance =
-  mongoose.models
-    .PlayerMatchPerformance ||
-  mongoose.model(
-    "PlayerMatchPerformance",
-    PlayerMatchPerformanceSchema
-  );
+  mongoose.models.PlayerMatchPerformance ||
+  mongoose.model("PlayerMatchPerformance", PlayerMatchPerformanceSchema);
 
 export default PlayerMatchPerformance;

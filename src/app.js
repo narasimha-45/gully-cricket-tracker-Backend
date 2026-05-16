@@ -6,8 +6,12 @@ import matchRoutes from "./routes/match.routes.js";
 import statsRoutes from "./routes/stats.routes.js";
 import teamRoutes from "./routes/team.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
+import { setupSwagger } from "./config/swagger.js";
 
 const app = express();
+
+// Initialize Swagger
+setupSwagger(app);
 
 /* ======================================================
    MIDDLEWARE
@@ -17,9 +21,13 @@ app.use(cors());
 
 app.use(express.json());
 
+import searchRoutes from "./routes/search.routes.js";
+
 /* ======================================================
    ROUTES
 ====================================================== */
+
+app.use("/api/search", searchRoutes);
 
 app.use("/api/matches", matchRoutes);
 

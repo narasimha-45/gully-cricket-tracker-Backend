@@ -1,4 +1,6 @@
 import OverallPlayerStats from "../../models/OverallPlayerStats.js";
+import PlayerSeasonStats from "../../models/PlayerSeasonStats.js";
+import { getDerivedStats } from "./leaderboard.service.js";
 
 /* ======================================================
    HELPERS
@@ -7,62 +9,85 @@ import OverallPlayerStats from "../../models/OverallPlayerStats.js";
 const normalize = (name) => name.trim().toLowerCase();
 
 /* ======================================================
-   BATTER VS BOWLER
+   BATTER VS BOWLER (RIVALRY)
 ====================================================== */
 
-export const getBatterVsBowler = async ({ batter, bowler }) => {
+export const getBatterVsBowler = async ({ batter, bowler, seasonId }) => {
   if (!batter || !bowler) {
     throw new Error("Batter and bowler are required");
   }
 
-  const batterStats = await OverallPlayerStats.findOne({
-    name: normalize(batter),
-  }).lean();
+  const Model = seasonId && seasonId !== "overall" ? PlayerSeasonStats : OverallPlayerStats;
+  const query = { name: normalize(batter) };
+  if (seasonId && seasonId !== "overall") query.seasonId = seasonId;
 
-  const bowlerStats = await OverallPlayerStats.findOne({
-    name: normalize(bowler),
-  }).lean();
+  const batterStats = await Model.findOne(query).lean();
 
-  if (!batterStats) {
-    throw new Error("Batter not found");
+  const bowlerQuery = { name: normalize(bowler) };
+  if (seasonId && seasonId !== "overall") bowlerQuery.seasonId = seasonId;
+  const bowlerStats = await Model.findOne(bowlerQuery).lean();
+
+  if (!batterStats || !bowlerStats) {
+    throw new Error("Stats not found for one or both players");
   }
 
-  if (!bowlerStats) {
-    throw new Error("Bowler not found");
-  }
+  const bName = normalize(batter);
+  const boName = normalize(bowler);
 
-  /* =========================================
-       DISMISSALS
-    ========================================= */
+  const batterDismissalInfo = batterStats.batting.dismissedBy?.[boName] || { total: 0 };
+  const bowlerDismissalInfo = bowlerStats.bowling.dismissedBatters?.[bName] || { total: 0 };
 
-  const dismissals = batterStats.batting.dismissedBy?.[normalize(bowler)] || 0;
+  const totalDismissals = Math.max(
+    typeof batterDismissalInfo === "number" ? batterDismissalInfo : (batterDismissalInfo.total || 0),
+    typeof bowlerDismissalInfo === "number" ? bowlerDismissalInfo : (bowlerDismissalInfo.total || 0)
+  );
 
-  /* =========================================
-       BOWLER SIDE VALIDATION
-    ========================================= */
-
-  const bowlerDismissals =
-    bowlerStats.bowling.dismissedBatters?.[normalize(batter)] || 0;
+  const breakdown = typeof batterDismissalInfo === "object" ? { ...batterDismissalInfo } : { total: batterDismissalInfo };
+  delete breakdown.total;
 
   return {
-    batter: normalize(batter),
+    batter: bName,
+    bowler: boName,
+    seasonId: seasonId || "overall",
+    totalDismissals,
+    breakdown,
+    validated: (batterDismissalInfo.total || batterDismissalInfo) === (bowlerDismissalInfo.total || bowlerDismissalInfo),
+    batting: {},
+  };
+};
 
-    bowler: normalize(bowler),
+/* ======================================================
+   PLAYER COMPARISON (HEAD TO HEAD)
+===================================================== */
 
-    dismissals,
+export const getPlayerHeadToHead = async ({ player1, player2, seasonId }) => {
+  if (!player1 || !player2) {
+    throw new Error("Both players are required for comparison");
+  }
 
-    validated: dismissals === bowlerDismissals,
+  const Model = seasonId && seasonId !== "overall" ? PlayerSeasonStats : OverallPlayerStats;
+  
+  const p1Query = { name: normalize(player1) };
+  if (seasonId && seasonId !== "overall") p1Query.seasonId = seasonId;
+  
+  const p2Query = { name: normalize(player2) };
+  if (seasonId && seasonId !== "overall") p2Query.seasonId = seasonId;
 
-    batting: {
-      /*
-          FUTURE:
-          ball-by-ball engine
+  const [s1, s2] = await Promise.all([
+    Model.findOne(p1Query).lean(),
+    Model.findOne(p2Query).lean()
+  ]);
 
-          runs vs bowler
-          balls vs bowler
-          strike rate
-        */
-    },
+  if (!s1 || !s2) {
+    throw new Error("One or both players not found");
+  }
+
+  return {
+    seasonId: seasonId || "overall",
+    players: [
+      { name: s1.name, stats: s1, derived: getDerivedStats(s1) },
+      { name: s2.name, stats: s2, derived: getDerivedStats(s2) }
+    ]
   };
 };
 
@@ -71,16 +96,6 @@ export const getBatterVsBowler = async ({ batter, bowler }) => {
 ====================================================== */
 
 export const getTeamHeadToHead = async () => {
-  return {
-    message: "Coming soon",
-  };
-};
-
-/* ======================================================
-   PLAYER HEAD TO HEAD
-====================================================== */
-
-export const getPlayerHeadToHead = async () => {
   return {
     message: "Coming soon",
   };
