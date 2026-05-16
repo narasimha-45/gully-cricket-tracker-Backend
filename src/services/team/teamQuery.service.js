@@ -1,5 +1,4 @@
 import Team from "../../models/team.model.js";
-
 import Match from "../../models/match.model.js";
 
 /* ======================================================
@@ -7,17 +6,38 @@ import Match from "../../models/match.model.js";
 ====================================================== */
 
 export const getTeamProfile = async (teamName) => {
-  const team = await Team.findOne({
-    name: teamName,
-  }).lean();
+  // 1. Find the latest version of the team
+  let team = await Team.findOne({
+    name: { $regex: new RegExp(`^${teamName}$`, "i") },
+  })
+    .sort({ createdAt: -1 })
+    .populate("players", "name")
+    .lean();
 
   if (!team) {
     throw new Error("Team not found");
   }
 
-  /* =========================================
-       DERIVED
-    ========================================= */
+  // 2. If players array is empty, fallback to Match history
+  if (!team.players || team.players.length === 0) {
+    const latestMatch = await Match.findOne({
+      $or: [
+        { "teams.teamA.name": { $regex: new RegExp(`^${teamName}$`, "i") } },
+        { "teams.teamB.name": { $regex: new RegExp(`^${teamName}$`, "i") } }
+      ]
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    if (latestMatch) {
+      const matchTeam = latestMatch.teams.teamA.name.toLowerCase() === teamName.toLowerCase() 
+        ? latestMatch.teams.teamA 
+        : latestMatch.teams.teamB;
+      
+      // Convert string names to the format expected by the frontend
+      team.players = (matchTeam.players || []).map(name => ({ name }));
+    }
+  }
 
   const netRunRate =
     team.stats.ballsFaced > 0 && team.stats.ballsBowled > 0
@@ -29,7 +49,6 @@ export const getTeamProfile = async (teamName) => {
 
   return {
     team,
-
     derived: {
       netRunRate,
     },
@@ -42,24 +61,16 @@ export const getTeamProfile = async (teamName) => {
 
 export const getTeamMatches = async (teamName, query = {}) => {
   const page = Number(query.page) || 1;
-
   const limit = Number(query.limit) || 10;
-
   const skip = (page - 1) * limit;
 
   return await Match.find({
     $or: [
-      {
-        "teams.teamA.name": teamName,
-      },
-      {
-        "teams.teamB.name": teamName,
-      },
+      { "teams.teamA.name": teamName },
+      { "teams.teamB.name": teamName },
     ],
   })
-    .sort({
-      createdAt: -1,
-    })
+    .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit)
     .lean();
@@ -73,9 +84,7 @@ export const getSeasonTeams = async (seasonId) => {
   return await Team.find({
     seasonId,
   })
-    .sort({
-      "stats.points": -1,
-    })
+    .sort({ "stats.points": -1 })
     .lean();
 };
 
@@ -100,24 +109,19 @@ export const getPointsTable = async (seasonId) => {
 
       return {
         ...team,
-
         derived: {
           netRunRate: nrr,
         },
       };
     })
     .sort((a, b) => {
-      /* POINTS */
-
       if (b.stats.points !== a.stats.points) {
         return b.stats.points - a.stats.points;
       }
-
-      /* NRR */
-
       return b.derived.netRunRate - a.derived.netRunRate;
     });
 };
+
 export const getGlobalTeamProfile = async (teamName) => {
   const teams = await Team.find({ name: teamName }).lean();
   
@@ -125,18 +129,10 @@ export const getGlobalTeamProfile = async (teamName) => {
     throw new Error("Team not found");
   }
 
-  // Aggregate stats
   const stats = {
-    played: 0,
-    wins: 0,
-    losses: 0,
-    ties: 0,
-    runsScored: 0,
-    wicketsLost: 0,
-    ballsFaced: 0,
-    runsConceded: 0,
-    wicketsTaken: 0,
-    ballsBowled: 0,
+    played: 0, wins: 0, losses: 0, ties: 0,
+    runsScored: 0, wicketsLost: 0, ballsFaced: 0,
+    runsConceded: 0, wicketsTaken: 0, ballsBowled: 0,
     points: 0,
     highestScore: { runs: 0, wickets: 0, overs: 0 },
     lowestScore: { runs: 9999, wickets: 0, overs: 0 },
@@ -184,12 +180,10 @@ export const getGlobalTeamProfile = async (teamName) => {
     if (s.biggestWin?.margin > stats.biggestWin.margin) stats.biggestWin = s.biggestWin;
   });
 
-  // Cleanup 9999s
   if (stats.lowestScore.runs === 9999) stats.lowestScore.runs = 0;
   if (stats.lowestTotalDefended.runs === 9999) stats.lowestTotalDefended.runs = 0;
   if (stats.lowestSuccessfulChase.runs === 9999) stats.lowestSuccessfulChase.runs = 0;
 
-  // Derived
   const nrr = stats.ballsFaced > 0 && stats.ballsBowled > 0
     ? (stats.runsScored / (stats.ballsFaced / 6) - stats.runsConceded / (stats.ballsBowled / 6)).toFixed(2)
     : 0;

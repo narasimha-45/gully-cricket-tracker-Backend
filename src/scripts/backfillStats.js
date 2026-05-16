@@ -9,7 +9,7 @@ dotenv.config();
 
 const OLD_URI = process.env.MONGO_OLD_URI;
 
-const NEW_URI = process.env.MONGO_URI;
+const NEW_URI = process.env.TEST_MONGO_URI;
 
 await mongoose.connect(NEW_URI);
 
