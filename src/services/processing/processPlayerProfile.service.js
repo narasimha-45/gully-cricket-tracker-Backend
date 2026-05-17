@@ -13,7 +13,10 @@ export const processPlayerProfiles = async (match, state, accumulators) => {
        COLLECT PLAYERS
     ========================================= */
 
-  for (const innings of match.innings || []) {
+  // Exclude Super Over innings from player profile stats
+  const inningsToProcess = (match.innings || []).filter((inn) => !inn.isSuperOver);
+
+  for (const innings of inningsToProcess) {
     /* =====================================
          BATTERS
       ===================================== */

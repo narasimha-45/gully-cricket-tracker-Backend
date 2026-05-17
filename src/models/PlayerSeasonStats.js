@@ -6,81 +6,118 @@ import mongoose from "mongoose";
    BATTING
 ========================================= */
 
-const BattingSchema =
-  new mongoose.Schema(
-    {
+const BattingSchema = new mongoose.Schema(
+  {
+    innings: {
+      type: Number,
+      default: 0,
+    },
 
-      innings: {
-        type: Number,
-        default: 0,
-      },
+    outs: {
+      type: Number,
+      default: 0,
+    },
 
-      outs: {
-        type: Number,
-        default: 0,
-      },
+    notOuts: {
+      type: Number,
+      default: 0,
+    },
 
-      notOuts: {
-        type: Number,
-        default: 0,
-      },
+    runs: {
+      type: Number,
+      default: 0,
+    },
 
+    balls: {
+      type: Number,
+      default: 0,
+    },
+
+    fours: {
+      type: Number,
+      default: 0,
+    },
+
+    sixes: {
+      type: Number,
+      default: 0,
+    },
+
+    ducks: {
+      type: Number,
+      default: 0,
+    },
+
+    /* HIGHEST SCORE */
+
+    highestScore: {
       runs: {
         type: Number,
         default: 0,
       },
 
-      balls: {
+      matchId: {
+        type: mongoose.Schema.Types.ObjectId,
+
+        ref: "Match",
+
+        default: null,
+      },
+    },
+
+    /* SCORE BUCKETS */
+
+    scoreRanges: {
+      type: [Number],
+
+      default: () => Array(11).fill(0),
+    },
+
+    /* HOW PLAYER GOT OUT */
+
+    dismissalTypes: {
+      bowled: {
         type: Number,
         default: 0,
       },
 
-      fours: {
+      caught: {
         type: Number,
         default: 0,
       },
 
-      sixes: {
+      lbw: {
         type: Number,
         default: 0,
       },
 
-      ducks: {
+      runOut: {
         type: Number,
         default: 0,
       },
 
-      /* HIGHEST SCORE */
+      stumped: {
+        type: Number,
+        default: 0,
+      },
 
-      highestScore: {
-        runs: {
+      hitWicket: {
+        type: Number,
+        default: 0,
+      },
+    },
+
+    /* WHICH BOWLERS DISMISSED HIM */
+
+    dismissedBy: {
+      type: Map,
+
+      of: {
+        total: {
           type: Number,
           default: 0,
         },
 
-        matchId: {
-          type:
-            mongoose.Schema.Types
-              .ObjectId,
-
-          ref: "Match",
-
-          default: null,
-        },
-      },
-
-      /* SCORE BUCKETS */
-
-      scoreRanges: {
-        type: [Number],
-
-        default: () =>
-          Array(11).fill(0),
-      },
-
-      /* HOW PLAYER GOT OUT */
-
-      dismissalTypes: {
         bowled: {
           type: Number,
           default: 0,
@@ -112,33 +149,47 @@ const BattingSchema =
         },
       },
 
-      /* WHICH BOWLERS DISMISSED HIM */
-
-      dismissedBy: {
-        type: Map,
-
-        of: Number,
-
-        default: {},
-      },
+      default: {},
     },
-    { _id: false }
-  );
+  },
+  { _id: false },
+);
 
 /* =========================================
    BOWLING
 ========================================= */
 
-const BowlingSchema =
-  new mongoose.Schema(
-    {
-      
-      innings: {
-        type: Number,
-        default: 0,
-      },
+const BowlingSchema = new mongoose.Schema(
+  {
+    innings: {
+      type: Number,
+      default: 0,
+    },
 
-      balls: {
+    balls: {
+      type: Number,
+      default: 0,
+    },
+
+    runs: {
+      type: Number,
+      default: 0,
+    },
+
+    wickets: {
+      type: Number,
+      default: 0,
+    },
+
+    maidens: {
+      type: Number,
+      default: 0,
+    },
+
+    /* BEST BOWLING */
+
+    bestBowling: {
+      wickets: {
         type: Number,
         default: 0,
       },
@@ -148,43 +199,74 @@ const BowlingSchema =
         default: 0,
       },
 
-      wickets: {
+      matchId: {
+        type: mongoose.Schema.Types.ObjectId,
+
+        ref: "Match",
+
+        default: null,
+      },
+    },
+
+    /* WICKET TYPES */
+
+    wicketTypes: {
+      bowled: {
         type: Number,
         default: 0,
       },
 
-      maidens: {
+      caught: {
         type: Number,
         default: 0,
       },
 
-      /* BEST BOWLING */
-
-      bestBowling: {
-        wickets: {
-          type: Number,
-          default: 0,
-        },
-
-        runs: {
-          type: Number,
-          default: 0,
-        },
-
-        matchId: {
-          type:
-            mongoose.Schema.Types
-              .ObjectId,
-
-          ref: "Match",
-
-          default: null,
-        },
+      lbw: {
+        type: Number,
+        default: 0,
       },
 
-      /* WICKET TYPES */
+      stumped: {
+        type: Number,
+        default: 0,
+      },
 
-      wicketTypes: {
+      hitWicket: {
+        type: Number,
+        default: 0,
+      },
+    },
+
+    /* WICKET HAULS */
+
+    wicketHauls: {
+      w3: {
+        type: Number,
+        default: 0,
+      },
+
+      w4: {
+        type: Number,
+        default: 0,
+      },
+
+      w5: {
+        type: Number,
+        default: 0,
+      },
+    },
+
+    /* WHICH BATTERS HE DISMISSED */
+
+    dismissedBatters: {
+      type: Map,
+
+      of: {
+        total: {
+          type: Number,
+          default: 0,
+        },
+
         bowled: {
           type: Number,
           default: 0,
@@ -211,139 +293,108 @@ const BowlingSchema =
         },
       },
 
-      /* WICKET HAULS */
-
-      wicketHauls: {
-        w3: {
-          type: Number,
-          default: 0,
-        },
-
-        w4: {
-          type: Number,
-          default: 0,
-        },
-
-        w5: {
-          type: Number,
-          default: 0,
-        },
-      },
-
-      /* WHICH BATTERS HE DISMISSED */
-
-      dismissedBatters: {
-        type: Map,
-
-        of: Number,
-
-        default: {},
-      },
+      default: {},
     },
-    { _id: false }
-  );
+  },
+  { _id: false },
+);
 
 /* =========================================
    FIELDING
 ========================================= */
 
-const FieldingSchema =
-  new mongoose.Schema(
-    {
-      catches: {
-        type: Number,
-        default: 0,
-      },
-
-      runOuts: {
-        type: Number,
-        default: 0,
-      },
-
-      stumpings: {
-        type: Number,
-        default: 0,
-      },
+const FieldingSchema = new mongoose.Schema(
+  {
+    catches: {
+      type: Number,
+      default: 0,
     },
-    { _id: false }
-  );
+
+    runOuts: {
+      type: Number,
+      default: 0,
+    },
+
+    stumpings: {
+      type: Number,
+      default: 0,
+    },
+  },
+  { _id: false },
+);
 
 /* =========================================
    ACHIEVEMENTS
 ========================================= */
 
-const AchievementSchema =
-  new mongoose.Schema(
-    {
-      mom: {
-        type: Number,
-        default: 0,
-      },
+const AchievementSchema = new mongoose.Schema(
+  {
+    mom: {
+      type: Number,
+      default: 0,
     },
-    { _id: false }
-  );
+  },
+  { _id: false },
+);
 
 /* =========================================
    MAIN SCHEMA
 ========================================= */
 
-const PlayerSeasonStatsSchema =
-  new mongoose.Schema(
-    {
-      seasonId: {
-        type:
-          mongoose.Schema.Types
-            .ObjectId,
+const PlayerSeasonStatsSchema = new mongoose.Schema(
+  {
+    seasonId: {
+      type: mongoose.Schema.Types.ObjectId,
 
-        ref: "Season",
+      ref: "Season",
 
-        required: true,
-      },
-
-      name: {
-        type: String,
-
-        required: true,
-
-        trim: true,
-
-        lowercase: true,
-      },
-
-      totalMatches: {
-        type: Number,
-
-        default: 0,
-      },
-
-      batting: {
-        type: BattingSchema,
-
-        default: () => ({}),
-      },
-
-      bowling: {
-        type: BowlingSchema,
-
-        default: () => ({}),
-      },
-
-      fielding: {
-        type: FieldingSchema,
-
-        default: () => ({}),
-      },
-
-      achievements: {
-        type: AchievementSchema,
-
-        default: () => ({}),
-      },
+      required: true,
     },
-    {
-      timestamps: true,
-    }
-  );
+
+    name: {
+      type: String,
+
+      required: true,
+
+      trim: true,
+
+      lowercase: true,
+    },
+
+    totalMatches: {
+      type: Number,
+
+      default: 0,
+    },
+
+    batting: {
+      type: BattingSchema,
+
+      default: () => ({}),
+    },
+
+    bowling: {
+      type: BowlingSchema,
+
+      default: () => ({}),
+    },
+
+    fielding: {
+      type: FieldingSchema,
+
+      default: () => ({}),
+    },
+
+    achievements: {
+      type: AchievementSchema,
+
+      default: () => ({}),
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
 
 /* =========================================
    UNIQUE
@@ -356,7 +407,7 @@ PlayerSeasonStatsSchema.index(
   },
   {
     unique: true,
-  }
+  },
 );
 
 /* =========================================
@@ -386,11 +437,7 @@ PlayerSeasonStatsSchema.index({
 /* ========================================= */
 
 const PlayerSeasonStats =
-  mongoose.models
-    .PlayerSeasonStats ||
-  mongoose.model(
-    "PlayerSeasonStats",
-    PlayerSeasonStatsSchema
-  );
+  mongoose.models.PlayerSeasonStats ||
+  mongoose.model("PlayerSeasonStats", PlayerSeasonStatsSchema);
 
 export default PlayerSeasonStats;

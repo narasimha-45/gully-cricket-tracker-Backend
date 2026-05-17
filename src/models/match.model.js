@@ -49,11 +49,10 @@ const MatchSchema = new mongoose.Schema(
       },
       type: {
         type: String,
-        enum: ["RUNS", "WICKETS"],
         required: true,
       },
       margin: {
-        type: Number,
+        type: mongoose.Schema.Types.Mixed,
         required: true,
       },
       manOfTheMatch: {
@@ -67,6 +66,8 @@ const MatchSchema = new mongoose.Schema(
       enum: ["LIVE", "COMPLETED"],
       default: "LIVE",
     },
+
+    fieldingStats: mongoose.Schema.Types.Mixed,
 
     completedAt: Date,
   },

@@ -5,6 +5,7 @@ import {
   getMatchScorecard,
   getRecentMatches,
   getSeasonMatches,
+  completeMatchHandler,
 } from "../controllers/match.controller.js";
 import { validate } from "../middleware/validate.middleware.js";
 import { matchSchema } from "../validations/match.validation.js";
@@ -39,6 +40,14 @@ router.post(
 
   submitMatch,
 );
+
+/**
+ * POST /api/matches/complete
+ * Called from the live tracker frontend after a match finishes.
+ * Persists the full match (including Super Over innings) and runs
+ * the processing pipeline to update player/team stats.
+ */
+router.post("/complete", completeMatchHandler);
 
 /**
  * @swagger

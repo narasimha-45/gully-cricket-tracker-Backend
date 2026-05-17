@@ -1,134 +1,457 @@
-import Team from "../../models/team.model.js";
+
+/* ======================================================
+   HELPERS
+====================================================== */
+
+const normalize = (v) =>
+  v?.trim()?.toLowerCase?.() || "";
 
 /* ======================================================
    PROCESS TEAM STATS
 ====================================================== */
 
-export const processTeamStats = async (match, state, accumulators) => {
+export const processTeamStats = async (
+  match,
+  state,
+  accumulators,
+) => {
+  const teamAName =
+    normalize(match.teams.teamA.name);
+
+  const teamBName =
+    normalize(match.teams.teamB.name);
+
   /* =========================================
-       LOAD TEAMS
-    ========================================= */
+     LOAD TEAM DOCUMENTS
+  ========================================= */
 
-  let teamA = state.teamsMap.get(match.teams.teamA.name);
+  let teamAProfile =
+    state.teamProfilesMap.get(teamAName);
 
-  let teamB = state.teamsMap.get(match.teams.teamB.name);
+  let teamBProfile =
+    state.teamProfilesMap.get(teamBName);
 
-  if (!teamA || !teamB) {
-    throw new Error("Teams missing in preload state");
+  let teamAOverall =
+    state.overallTeamStatsMap.get(teamAName);
+
+  let teamBOverall =
+    state.overallTeamStatsMap.get(teamBName);
+
+  let teamASeason =
+    state.seasonTeamStatsMap.get(
+      `${match.seasonId}_${teamAName}`,
+    );
+
+  let teamBSeason =
+    state.seasonTeamStatsMap.get(
+      `${match.seasonId}_${teamBName}`,
+    );
+
+  /* =========================================
+     CREATE IF MISSING
+  ========================================= */
+
+  if (!teamAProfile) {
+    teamAProfile = {
+      name: teamAName,
+
+      seasonsPlayed: [],
+
+      totalMatches: 0,
+
+      lastMatchAt: null,
+    };
+
+    state.teamProfilesMap.set(
+      teamAName,
+      teamAProfile,
+    );
+  }
+
+  if (!teamBProfile) {
+    teamBProfile = {
+      name: teamBName,
+
+      seasonsPlayed: [],
+
+      totalMatches: 0,
+
+      lastMatchAt: null,
+    };
+
+    state.teamProfilesMap.set(
+      teamBName,
+      teamBProfile,
+    );
+  }
+
+  function createStats() {
+    return {
+      played: 0,
+      wins: 0,
+      losses: 0,
+      ties: 0,
+      noResults: 0,
+      points: 0,
+
+      runsScored: 0,
+      wicketsLost: 0,
+      ballsFaced: 0,
+
+      runsConceded: 0,
+      wicketsTaken: 0,
+      ballsBowled: 0,
+
+      foursScored: 0,
+      sixesScored: 0,
+
+      foursConceded: 0,
+      sixesConceded: 0,
+
+      dotBallsPlayed: 0,
+      dotBallsBowled: 0,
+
+      biggestWin: {
+        margin: 0,
+        type: null,
+        matchId: null,
+      },
+
+      highestScore: {
+        runs: 0,
+        wickets: 0,
+        overs: 0,
+        matchId: null,
+      },
+
+      lowestScore: {
+        runs: null,
+        wickets: 0,
+        overs: 0,
+        matchId: null,
+      },
+    };
+  }
+
+  if (!teamAOverall) {
+    teamAOverall = {
+      name: teamAName,
+
+      seasonsPlayed: [],
+
+      stats: createStats(),
+    };
+
+    state.overallTeamStatsMap.set(
+      teamAName,
+      teamAOverall,
+    );
+  }
+
+  if (!teamBOverall) {
+    teamBOverall = {
+      name: teamBName,
+
+      seasonsPlayed: [],
+
+      stats: createStats(),
+    };
+
+    state.overallTeamStatsMap.set(
+      teamBName,
+      teamBOverall,
+    );
+  }
+
+  if (!teamASeason) {
+    teamASeason = {
+      seasonId: match.seasonId,
+
+      name: teamAName,
+
+      stats: createStats(),
+    };
+
+    state.seasonTeamStatsMap.set(
+      `${match.seasonId}_${teamAName}`,
+      teamASeason,
+    );
+  }
+
+  if (!teamBSeason) {
+    teamBSeason = {
+      seasonId: match.seasonId,
+
+      name: teamBName,
+
+      stats: createStats(),
+    };
+
+    state.seasonTeamStatsMap.set(
+      `${match.seasonId}_${teamBName}`,
+      teamBSeason,
+    );
   }
 
   /* =========================================
-       MATCH PLAYED
-    ========================================= */
+     PROFILE
+  ========================================= */
 
-  teamA.stats.played += 1;
+  for (const profile of [
+    teamAProfile,
+    teamBProfile,
+  ]) {
+    profile.totalMatches += 1;
 
-  teamB.stats.played += 1;
+    profile.lastMatchAt =
+      match.createdAt;
 
-  /* =========================================
-       PROCESS INNINGS
-    ========================================= */
+    const alreadyPlayed =
+      profile.seasonsPlayed.some(
+        (id) =>
+          id.toString() ===
+          match.seasonId.toString(),
+      );
 
-  for (const innings of match.innings || []) {
-    const battingTeam = innings.battingTeam === teamA.name ? teamA : teamB;
-
-    const bowlingTeam = innings.bowlingTeam === teamA.name ? teamA : teamB;
-
-    const runs = innings.totalRuns || 0;
-
-    const wickets = innings.wickets || 0;
-
-    const balls = innings.balls || 0;
-
-    /* =====================================
-         BATTING TOTALS
-      ===================================== */
-
-    battingTeam.stats.runsScored += runs;
-
-    battingTeam.stats.wicketsLost += wickets;
-
-    battingTeam.stats.ballsFaced += balls;
-
-    /* =====================================
-         BOWLING TOTALS
-      ===================================== */
-
-    bowlingTeam.stats.runsConceded += runs;
-
-    bowlingTeam.stats.wicketsTaken += wickets;
-
-    bowlingTeam.stats.ballsBowled += balls;
-
-    /* =====================================
-         HIGHEST SCORE
-      ===================================== */
-
-    if (runs > battingTeam.stats.highestScore.runs) {
-      battingTeam.stats.highestScore = {
-        runs,
-
-        wickets,
-
-        matchId: match._id,
-      };
-    }
-
-    /* =====================================
-         LOWEST SCORE
-      ===================================== */
-
-    const currentLowest = battingTeam.stats.lowestScore;
-
-    if (currentLowest.runs === null || runs < currentLowest.runs) {
-      battingTeam.stats.lowestScore = {
-        runs,
-
-        wickets,
-
-        matchId: match._id,
-      };
+    if (!alreadyPlayed) {
+      profile.seasonsPlayed.push(
+        match.seasonId,
+      );
     }
   }
 
   /* =========================================
-       RESULT
-    ========================================= */
+     PLAYED
+  ========================================= */
 
-  const winner = match.result?.winner;
+  for (const stats of [
+    teamASeason,
+    teamBSeason,
+    teamAOverall,
+    teamBOverall,
+  ]) {
+    stats.stats.played += 1;
+  }
 
-  /* =====================================
-       TIE
+  /* =========================================
+     MAIN INNINGS ONLY
+  ========================================= */
+
+  const mainInnings =
+    (match.innings || []).filter(
+      (inn) => !inn.isSuperOver,
+    );
+
+  for (const innings of mainInnings) {
+    const battingSeason =
+      normalize(
+        innings.battingTeam,
+      ) === teamAName
+        ? teamASeason
+        : teamBSeason;
+
+    const bowlingSeason =
+      normalize(
+        innings.bowlingTeam,
+      ) === teamAName
+        ? teamASeason
+        : teamBSeason;
+
+    const battingOverall =
+      normalize(
+        innings.battingTeam,
+      ) === teamAName
+        ? teamAOverall
+        : teamBOverall;
+
+    const bowlingOverall =
+      normalize(
+        innings.bowlingTeam,
+      ) === teamAName
+        ? teamAOverall
+        : teamBOverall;
+
+    const runs =
+      innings.totalRuns || 0;
+
+    const wickets =
+      innings.wickets || 0;
+
+    const balls =
+      innings.balls || 0;
+
+    const overs =
+      Math.floor(balls / 6) +
+      (balls % 6) / 10;
+
+    /* =====================================
+       TOTALS
     ===================================== */
 
-  if (!winner || winner === "TIED") {
-    teamA.stats.ties += 1;
+    for (const stats of [
+      battingSeason,
+      battingOverall,
+    ]) {
+      stats.stats.runsScored += runs;
 
-    teamB.stats.ties += 1;
+      stats.stats.wicketsLost += wickets;
 
-    teamA.stats.points += 1;
+      stats.stats.ballsFaced += balls;
 
-    teamB.stats.points += 1;
+      if (
+        runs >
+        stats.stats.highestScore.runs
+      ) {
+        stats.stats.highestScore = {
+          runs,
+          wickets,
+          overs,
+          matchId: match._id,
+        };
+      }
+
+      if (
+        stats.stats.lowestScore.runs ===
+          null ||
+        runs <
+          stats.stats.lowestScore.runs
+      ) {
+        stats.stats.lowestScore = {
+          runs,
+          wickets,
+          overs,
+          matchId: match._id,
+        };
+      }
+    }
+
+    for (const stats of [
+      bowlingSeason,
+      bowlingOverall,
+    ]) {
+      stats.stats.runsConceded += runs;
+
+      stats.stats.wicketsTaken += wickets;
+
+      stats.stats.ballsBowled += balls;
+    }
+
+    /* =====================================
+       BALL BY BALL
+    ===================================== */
+
+    for (const ball of innings.ballByBall ||
+      []) {
+      const runs =
+        Number(ball.runs || 0);
+
+      const wides =
+        Number(
+          ball.extras?.wides || 0,
+        );
+
+      const noBalls =
+        Number(
+          ball.extras?.noBalls || 0,
+        );
+
+      const total =
+        runs + wides + noBalls;
+
+      const isLegal =
+        wides === 0 &&
+        noBalls === 0;
+
+      if (runs === 4) {
+        battingSeason.stats.foursScored += 1;
+        battingOverall.stats.foursScored += 1;
+
+        bowlingSeason.stats.foursConceded += 1;
+        bowlingOverall.stats.foursConceded += 1;
+      }
+
+      if (runs === 6) {
+        battingSeason.stats.sixesScored += 1;
+        battingOverall.stats.sixesScored += 1;
+
+        bowlingSeason.stats.sixesConceded += 1;
+        bowlingOverall.stats.sixesConceded += 1;
+      }
+
+      if (isLegal && total === 0) {
+        battingSeason.stats.dotBallsPlayed += 1;
+        battingOverall.stats.dotBallsPlayed += 1;
+
+        bowlingSeason.stats.dotBallsBowled += 1;
+        bowlingOverall.stats.dotBallsBowled += 1;
+      }
+    }
+  }
+
+  /* =========================================
+     RESULT
+  ========================================= */
+
+  const winner =
+    normalize(
+      match.result?.winner,
+    );
+
+  if (!winner || winner === "tied") {
+    for (const stats of [
+      teamASeason,
+      teamBSeason,
+      teamAOverall,
+      teamBOverall,
+    ]) {
+      stats.stats.ties += 1;
+    }
+
+    teamASeason.stats.points += 1;
+    teamBSeason.stats.points += 1;
   } else {
-    /* =====================================
-       WIN / LOSS
-    ===================================== */
-    const winningTeam = winner === teamA.name ? teamA : teamB;
+    const winningSeason =
+      winner === teamAName
+        ? teamASeason
+        : teamBSeason;
 
-    const losingTeam = winner === teamA.name ? teamB : teamA;
+    const losingSeason =
+      winner === teamAName
+        ? teamBSeason
+        : teamASeason;
 
-    winningTeam.stats.wins += 1;
+    const winningOverall =
+      winner === teamAName
+        ? teamAOverall
+        : teamBOverall;
 
-    losingTeam.stats.losses += 1;
+    const losingOverall =
+      winner === teamAName
+        ? teamBOverall
+        : teamAOverall;
 
-    winningTeam.stats.points += 2;
+    for (const stats of [
+      winningSeason,
+      winningOverall,
+    ]) {
+      stats.stats.wins += 1;
+    }
 
-    /* ===================================
-         BIGGEST WIN
-      =================================== */
+    for (const stats of [
+      losingSeason,
+      losingOverall,
+    ]) {
+      stats.stats.losses += 1;
+    }
 
-    if (match.result.margin > winningTeam.stats.biggestWin.margin) {
-      winningTeam.stats.biggestWin = {
+    winningSeason.stats.points += 2;
+
+    if (
+      match.result.margin >
+      winningSeason.stats.biggestWin
+        .margin
+    ) {
+      winningSeason.stats.biggestWin = {
         margin: match.result.margin,
 
         type: match.result.type,
@@ -136,142 +459,119 @@ export const processTeamStats = async (match, state, accumulators) => {
         matchId: match._id,
       };
     }
-    /* ===================================
-     DEFENDED / CHASE RECORDS
-=================================== */
-
-    const firstInnings = match.innings?.[0];
-
-    const secondInnings = match.innings?.[1];
-
-    if (firstInnings && secondInnings) {
-      const firstBattingTeam =
-        firstInnings.battingTeam === teamA.name ? teamA : teamB;
-
-      const secondBattingTeam =
-        secondInnings.battingTeam === teamA.name ? teamA : teamB;
-
-      const firstRuns = firstInnings.totalRuns || 0;
-
-      const firstWickets = firstInnings.wickets || 0;
-
-      const secondRuns = secondInnings.totalRuns || 0;
-
-      const secondWickets = secondInnings.wickets || 0;
-
-      /* ===================================
-       SUCCESSFUL DEFENCE
-    =================================== */
-
-      if (winningTeam._id.equals(firstBattingTeam._id)) {
-        /* HIGHEST TOTAL DEFENDED */
-
-        if (firstRuns > winningTeam.stats.highestTotalDefended.runs) {
-          winningTeam.stats.highestTotalDefended = {
-            runs: firstRuns,
-
-            wickets: firstWickets,
-
-            againstTeamId: losingTeam._id,
-
-            matchId: match._id,
-          };
-        }
-
-        /* LOWEST TOTAL DEFENDED */
-
-        if (
-          winningTeam.stats.lowestTotalDefended.runs === null ||
-          firstRuns < winningTeam.stats.lowestTotalDefended.runs
-        ) {
-          winningTeam.stats.lowestTotalDefended = {
-            runs: firstRuns,
-
-            wickets: firstWickets,
-
-            againstTeamId: losingTeam._id,
-
-            matchId: match._id,
-          };
-        }
-      }
-
-      /* ===================================
-       SUCCESSFUL CHASE
-    =================================== */
-
-      if (winningTeam._id.equals(secondBattingTeam._id)) {
-        const totalBalls = (match.matchConfig?.overs || 0) * 6;
-
-        const ballsUsed = secondInnings.balls || 0;
-
-        const ballsRemaining = Math.max(totalBalls - ballsUsed, 0);
-
-        /* HIGHEST SUCCESSFUL CHASE */
-
-        if (secondRuns > winningTeam.stats.highestSuccessfulChase.runs) {
-          winningTeam.stats.highestSuccessfulChase = {
-            runs: secondRuns,
-
-            wickets: secondWickets,
-
-            ballsRemaining,
-
-            againstTeamId: losingTeam._id,
-
-            matchId: match._id,
-          };
-        }
-
-        /* LOWEST SUCCESSFUL CHASE */
-
-        if (
-          winningTeam.stats.lowestSuccessfulChase.runs === null ||
-          secondRuns < winningTeam.stats.lowestSuccessfulChase.runs
-        ) {
-          winningTeam.stats.lowestSuccessfulChase = {
-            runs: secondRuns,
-
-            wickets: secondWickets,
-
-            ballsRemaining,
-
-            againstTeamId: losingTeam._id,
-
-            matchId: match._id,
-          };
-        }
-      }
-    }
   }
 
   /* =========================================
-       BUILD BULK OPS
-    ========================================= */
+     BULK OPS
+  ========================================= */
 
-  accumulators.teams.set(teamA._id.toString(), {
-    updateOne: {
-      filter: {
-        _id: teamA._id,
-      },
+  accumulators.teamProfiles.set(
+    teamAName,
+    {
+      updateOne: {
+        filter: {
+          name: teamAName,
+        },
 
-      update: {
-        $set: teamA,
-      },
-    },
-  });
+        update: {
+          $set: teamAProfile,
+        },
 
-  accumulators.teams.set(teamB._id.toString(), {
-    updateOne: {
-      filter: {
-        _id: teamB._id,
-      },
-
-      update: {
-        $set: teamB,
+        upsert: true,
       },
     },
-  });
+  );
+
+  accumulators.teamProfiles.set(
+    teamBName,
+    {
+      updateOne: {
+        filter: {
+          name: teamBName,
+        },
+
+        update: {
+          $set: teamBProfile,
+        },
+
+        upsert: true,
+      },
+    },
+  );
+
+  accumulators.overallTeamStats.set(
+    teamAName,
+    {
+      updateOne: {
+        filter: {
+          name: teamAName,
+        },
+
+        update: {
+          $set: teamAOverall,
+        },
+
+        upsert: true,
+      },
+    },
+  );
+
+  accumulators.overallTeamStats.set(
+    teamBName,
+    {
+      updateOne: {
+        filter: {
+          name: teamBName,
+        },
+
+        update: {
+          $set: teamBOverall,
+        },
+
+        upsert: true,
+      },
+    },
+  );
+
+  accumulators.seasonTeamStats.set(
+    `${match.seasonId}_${teamAName}`,
+    {
+      updateOne: {
+        filter: {
+          seasonId:
+            match.seasonId,
+
+          name: teamAName,
+        },
+
+        update: {
+          $set: teamASeason,
+        },
+
+        upsert: true,
+      },
+    },
+  );
+
+  accumulators.seasonTeamStats.set(
+    `${match.seasonId}_${teamBName}`,
+    {
+      updateOne: {
+        filter: {
+          seasonId:
+            match.seasonId,
+
+          name: teamBName,
+        },
+
+        update: {
+          $set: teamBSeason,
+        },
+
+        upsert: true,
+      },
+    },
+  );
 
   return true;
 };
