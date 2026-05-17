@@ -155,6 +155,7 @@ export const getOverallBowlingLeaderboard = async () => {
 ====================================================== */
 
 export const getSeasonFieldingLeaderboard = async (seasonId) => {
+  console.log("seasonId",seasonId)
   const players = await PlayerSeasonStats.find({
     seasonId,
   })
@@ -172,7 +173,7 @@ export const getSeasonFieldingLeaderboard = async (seasonId) => {
 
     runOuts: player.fielding.runOuts,
 
-    manOfTheMatch: player.achievements.mom,
+    manOfTheMatch: player.achievements.potm,
   }));
 };
 
@@ -192,7 +193,7 @@ export const getOverallFieldingLeaderboard = async () => {
 
     runOuts: player.fielding.runOuts,
 
-    manOfTheMatch: player.achievements.mom,
+    manOfTheMatch: player.achievements.potm,
   }));
 };
 
@@ -205,13 +206,13 @@ export const getOverallMomLeaderboard = async (seasonId) => {
     seasonId,
   })
     .sort({
-      "achievements.mom": -1,
+      "achievements.potm": -1,
     })
     .lean();
 
   return players.map((player) => ({
     name: player.name,
 
-    mom: player.achievements.mom,
+    mom: player.achievements.potm,
   }));
 };
