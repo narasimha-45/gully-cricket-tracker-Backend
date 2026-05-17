@@ -173,7 +173,7 @@ export const getSeasonFieldingLeaderboard = async (seasonId) => {
 
     runOuts: player.fielding.runOuts,
 
-    manOfTheMatch: player.achievements.potm,
+    manOfTheMatch: player.achievements.mom,
   }));
 };
 
@@ -193,7 +193,7 @@ export const getOverallFieldingLeaderboard = async () => {
 
     runOuts: player.fielding.runOuts,
 
-    manOfTheMatch: player.achievements.potm,
+    manOfTheMatch: player.achievements.mom,
   }));
 };
 
@@ -206,13 +206,13 @@ export const getOverallMomLeaderboard = async (seasonId) => {
     seasonId,
   })
     .sort({
-      "achievements.potm": -1,
+      "achievements.mom": -1,
     })
     .lean();
 
   return players.map((player) => ({
     name: player.name,
 
-    mom: player.achievements.potm,
+    mom: player.achievements.mom,
   }));
 };

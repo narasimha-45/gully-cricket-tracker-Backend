@@ -7,7 +7,10 @@ import { createEmptyStats } from "./shared/statsFactory.js";
 ====================================================== */
 
 export const processFielding = async (match, state, accumulators) => {
-  for (const innings of match.innings || []) {
+  // Exclude Super Over innings from fielding stats
+  const inningsToProcess = (match.innings || []).filter((inn) => !inn.isSuperOver);
+
+  for (const innings of inningsToProcess) {
     for (const dismissal of Object.values(innings.dismissals || {})) {
       /* ===================================
            INVALID

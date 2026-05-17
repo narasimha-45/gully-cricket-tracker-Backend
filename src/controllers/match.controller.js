@@ -1,5 +1,6 @@
 import * as matchQueryService from "../services/match/matchQuery.service.js";
 import * as matchCommandService from "../services/match/matchCommand.service.js";
+import { completeMatch } from "../services/match/matchComplete.service.js";
 
 /* ======================================================
    COMMON HANDLER
@@ -55,4 +56,13 @@ export const getSeasonMatches = async (req, res) => {
   handleResponse(res, () =>
     matchQueryService.getSeasonMatches(req.params.seasonId),
   );
+};
+
+/* ======================================================
+   COMPLETE MATCH (from live tracker frontend)
+====================================================== */
+
+export const completeMatchHandler = async (req, res) => {
+  console.log("Complete Match Controller", req.body);
+  handleResponse(res, () => completeMatch(req.body));
 };

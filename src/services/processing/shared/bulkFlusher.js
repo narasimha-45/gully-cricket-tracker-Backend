@@ -6,7 +6,11 @@ import PlayerMatchPerformance from "../../../models/PlayerMatchPerformance.js";
 
 import PlayerProfile from "../../../models/PlayerProfile.js";
 
-import Team from "../../../models/team.model.js";
+import TeamProfile from "../../../models/TeamProfile.js";
+
+import OverallTeamStats from "../../../models/OverallTeamStats.js";
+
+import TeamSeasonStats from "../../../models/TeamSeasonStats.js";
 
 /* ======================================================
    BULK FLUSH
@@ -14,7 +18,7 @@ import Team from "../../../models/team.model.js";
 
 export const flushAccumulators = async (accumulators) => {
   /* =========================================
-       OVERALL STATS
+       PLAYER OVERALL STATS
     ========================================= */
 
   if (accumulators.overallStats.size > 0) {
@@ -24,7 +28,7 @@ export const flushAccumulators = async (accumulators) => {
   }
 
   /* =========================================
-       SEASON STATS
+       PLAYER SEASON STATS
     ========================================= */
 
   if (accumulators.seasonStats.size > 0) {
@@ -34,7 +38,7 @@ export const flushAccumulators = async (accumulators) => {
   }
 
   /* =========================================
-       MATCH PERFORMANCE
+       PLAYER MATCH PERFORMANCE
     ========================================= */
 
   if (accumulators.matchPerformances.size > 0) {
@@ -44,7 +48,7 @@ export const flushAccumulators = async (accumulators) => {
   }
 
   /* =========================================
-       PLAYER PROFILE
+       PLAYER PROFILES
     ========================================= */
 
   if (accumulators.playerProfiles.size > 0) {
@@ -54,10 +58,30 @@ export const flushAccumulators = async (accumulators) => {
   }
 
   /* =========================================
-       TEAMS
+       TEAM PROFILES
     ========================================= */
 
-  if (accumulators.teams.size > 0) {
-    await Team.bulkWrite(Array.from(accumulators.teams.values()));
+  if (accumulators.teamProfiles.size > 0) {
+    await TeamProfile.bulkWrite(Array.from(accumulators.teamProfiles.values()));
+  }
+
+  /* =========================================
+       OVERALL TEAM STATS
+    ========================================= */
+
+  if (accumulators.overallTeamStats.size > 0) {
+    await OverallTeamStats.bulkWrite(
+      Array.from(accumulators.overallTeamStats.values()),
+    );
+  }
+
+  /* =========================================
+       SEASON TEAM STATS
+    ========================================= */
+
+  if (accumulators.seasonTeamStats.size > 0) {
+    await TeamSeasonStats.bulkWrite(
+      Array.from(accumulators.seasonTeamStats.values()),
+    );
   }
 };

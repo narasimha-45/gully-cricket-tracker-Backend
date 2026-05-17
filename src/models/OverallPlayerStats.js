@@ -110,8 +110,7 @@ const OverallPlayerStatsSchema = new mongoose.Schema(
       scoreRanges: {
         type: [Number],
 
-        default: () =>
-          Array(11).fill(0),
+        default: () => Array(11).fill(0),
       },
 
       /* HOW PLAYER GOT OUT */
@@ -153,7 +152,42 @@ const OverallPlayerStatsSchema = new mongoose.Schema(
       dismissedBy: {
         type: Map,
 
-        of: Number,
+        of: {
+          total: {
+            type: Number,
+            default: 0,
+          },
+
+          bowled: {
+            type: Number,
+            default: 0,
+          },
+
+          caught: {
+            type: Number,
+            default: 0,
+          },
+
+          lbw: {
+            type: Number,
+            default: 0,
+          },
+
+          runOut: {
+            type: Number,
+            default: 0,
+          },
+
+          stumped: {
+            type: Number,
+            default: 0,
+          },
+
+          hitWicket: {
+            type: Number,
+            default: 0,
+          },
+        },
 
         default: {},
       },
@@ -258,7 +292,37 @@ const OverallPlayerStatsSchema = new mongoose.Schema(
       dismissedBatters: {
         type: Map,
 
-        of: Number,
+        of: {
+          total: {
+            type: Number,
+            default: 0,
+          },
+
+          bowled: {
+            type: Number,
+            default: 0,
+          },
+
+          caught: {
+            type: Number,
+            default: 0,
+          },
+
+          lbw: {
+            type: Number,
+            default: 0,
+          },
+
+          stumped: {
+            type: Number,
+            default: 0,
+          },
+
+          hitWicket: {
+            type: Number,
+            default: 0,
+          },
+        },
 
         default: {},
       },
@@ -298,7 +362,7 @@ const OverallPlayerStatsSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 /* =========================================
@@ -326,11 +390,7 @@ OverallPlayerStatsSchema.index({
 /* ========================================= */
 
 const OverallPlayerStats =
-  mongoose.models
-    .OverallPlayerStats ||
-  mongoose.model(
-    "OverallPlayerStats",
-    OverallPlayerStatsSchema
-  );
+  mongoose.models.OverallPlayerStats ||
+  mongoose.model("OverallPlayerStats", OverallPlayerStatsSchema);
 
 export default OverallPlayerStats;

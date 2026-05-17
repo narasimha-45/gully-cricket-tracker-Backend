@@ -14,11 +14,15 @@ import { processPlayerProfiles } from "./processPlayerProfile.service.js";
 
 import { invalidateMatchCaches } from "../stats/cache.service.js";
 
+import { processBallAnalytics } from "./processBallAnalytics.service.js";
+
+import { processRivalries } from "./processRivalries.service.js";
+
 /* ======================================================
    PROCESS MATCH
 ====================================================== */
 
-export const processCompletedMatch = async (match) => {
+export const processCompletedMatch = async (match, state) => {
   /* =========================================
        CREATE ACCUMULATORS
     ========================================= */
@@ -29,25 +33,45 @@ export const processCompletedMatch = async (match) => {
        PROCESSORS
     ========================================= */
 
-  await processTeamStats(match, accumulators);
+  console.log("Processing Team Stats................");
+  await processTeamStats(match, state, accumulators);
+  console.log("Team Stats Processed Successfully");
 
-  await processBatting(match, accumulators);
+  console.log("Processing Batting................");
+  await processBatting(match, state, accumulators);
+  console.log("Batting Processed Successfully");
 
-  await processBowling(match, accumulators);
+  console.log("Processing Bowling................");
+  await processBowling(match, state, accumulators);
+  console.log("Bowling Processed Successfully");
 
-  await processFielding(match, accumulators);
+  console.log("Processing Fielding................");
+  await processFielding(match, state, accumulators);
+  console.log("Fielding Processed Successfully");
 
-  await processPlayerProfiles(match, accumulators);
+  console.log("Processing Player Profiles................");
+  await processPlayerProfiles(match, state, accumulators);
+  console.log("Player Profiles Processed Successfu lly");
+
+  console.log("Processing Ball Analytics................");
+  await processBallAnalytics(match, state, accumulators);
+  console.log("Ball Analytics Processed Successfully");
+
+  console.log("Processing Player Rivalries................");
+  await processRivalries(match, state, accumulators);
+  console.log("Player Rivalries Processed Successfully");
 
   /* =========================================
        FLUSH DATABASE
     ========================================= */
-
+  console.log("Flushing Accumulators................");
   await flushAccumulators(accumulators);
+  console.log("Accumulators Flushed Successfully");
 
   /* =========================================
        INVALIDATE CACHE
     ========================================= */
+  console.log("Invalidating Caches................");
 
   await invalidateMatchCaches(match);
 

@@ -1,17 +1,25 @@
 /* ======================================================
-   BULK ACCUMULATORS
+   CREATE ACCUMULATORS
 ====================================================== */
 
 export const createAccumulators = () => {
   return {
+    /* PLAYERS */
+
     overallStats: new Map(),
 
     seasonStats: new Map(),
 
-    matchPerformances: new Map(),
-
     playerProfiles: new Map(),
 
-    teams: new Map(),
+    matchPerformances: new Map(),
+
+    /* TEAMS */
+
+    teamProfiles: new Map(),
+
+    overallTeamStats: new Map(),
+
+    seasonTeamStats: new Map(),
   };
 };

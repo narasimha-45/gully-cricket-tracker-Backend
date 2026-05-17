@@ -9,7 +9,7 @@ dotenv.config();
 
 const OLD_URI = process.env.MONGO_OLD_URI;
 
-const NEW_URI = process.env.TEST_MONGO_URI;
+const NEW_URI = process.env.MONGO_URI;
 
 await mongoose.connect(NEW_URI);
 
@@ -37,8 +37,26 @@ const OldMatch = oldConnection.model("Match", GenericSchema, "matches");
 ========================================================= */
 
 const Season = mongoose.model("Season", GenericSchema, "seasons");
-const Team = mongoose.model("Team", GenericSchema, "teams");
+
 const Match = mongoose.model("Match", GenericSchema, "matches");
+
+const TeamProfile = mongoose.model(
+  "TeamProfile",
+  GenericSchema,
+  "teamprofiles",
+);
+
+const OverallTeamStats = mongoose.model(
+  "OverallTeamStats",
+  GenericSchema,
+  "overallteamstats",
+);
+
+const TeamSeasonStats = mongoose.model(
+  "TeamSeasonStats",
+  GenericSchema,
+  "teamseasonstats",
+);
 
 const PlayerSeasonStats = mongoose.model(
   "PlayerSeasonStats",
@@ -218,14 +236,119 @@ function incNested(obj, key1, key2) {
 ========================================================= */
 
 const seasonStatsMap = new Map();
+
 const overallStatsMap = new Map();
+
 const profileMap = new Map();
+
 const performanceMap = new Map();
-const teamMap = new Map();
+
+const teamProfileMap = new Map();
+
+const overallTeamStatsMap = new Map();
+
+const seasonTeamStatsMap = new Map();
 
 /* =========================================================
    GETTERS
 ========================================================= */
+
+function getTeamProfile(name) {
+  if (!teamProfileMap.has(name)) {
+    teamProfileMap.set(name, {
+      name,
+
+      seasonsPlayed: [],
+
+      totalMatches: 0,
+
+      lastMatchAt: null,
+
+      createdAt: new Date(),
+
+      updatedAt: new Date(),
+    });
+  }
+
+  return teamProfileMap.get(name);
+}
+
+function getOverallTeamStats(name) {
+  if (!overallTeamStatsMap.has(name)) {
+    overallTeamStatsMap.set(name, {
+      name,
+
+      seasonsPlayed: [],
+
+      stats: {
+        played: 0,
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        noResults: 0,
+
+        runsScored: 0,
+        wicketsLost: 0,
+        ballsFaced: 0,
+
+        runsConceded: 0,
+        wicketsTaken: 0,
+        ballsBowled: 0,
+
+        foursScored: 0,
+        sixesScored: 0,
+
+        foursConceded: 0,
+        sixesConceded: 0,
+
+        dotBallsPlayed: 0,
+        dotBallsBowled: 0,
+      },
+    });
+  }
+
+  return overallTeamStatsMap.get(name);
+}
+
+function getSeasonTeamStats(seasonId, name) {
+  const key = `${seasonId}_${name}`;
+
+  if (!seasonTeamStatsMap.has(key)) {
+    seasonTeamStatsMap.set(key, {
+      seasonId,
+
+      name,
+
+      stats: {
+        played: 0,
+        wins: 0,
+        losses: 0,
+        ties: 0,
+        noResults: 0,
+        points: 0,
+
+        runsScored: 0,
+        wicketsLost: 0,
+        ballsFaced: 0,
+
+        runsConceded: 0,
+        wicketsTaken: 0,
+        ballsBowled: 0,
+
+        foursScored: 0,
+        sixesScored: 0,
+
+        foursConceded: 0,
+        sixesConceded: 0,
+
+        dotBallsPlayed: 0,
+        dotBallsBowled: 0,
+      },
+    });
+  }
+
+  return seasonTeamStatsMap.get(key);
+}
 
 function getSeasonStats(seasonId, name) {
   const key = `${seasonId}_${name}`;
@@ -286,106 +409,6 @@ async function migrateRawData() {
 
   console.log(`✅ Seasons: ${seasons.length}`);
 
-  console.log("🚀 Migrating Teams");
-
-  const teams = await OldTeam.find({}).lean();
-
-  const mergedTeamsMap = new Map();
-
-  for (const team of teams) {
-    const renamed = renameTeam(team.name);
-    const key = `${team.seasonId}_${renamed}`;
-
-    if (!mergedTeamsMap.has(key)) {
-      mergedTeamsMap.set(key, {
-        ...team,
-
-        name: renamed,
-
-        stats: {
-          played: 0,
-          wins: 0,
-          losses: 0,
-          ties: 0,
-          noResults: 0,
-          points: 0,
-
-          runsScored: 0,
-          wicketsLost: 0,
-          ballsFaced: 0,
-
-          runsConceded: 0,
-          wicketsTaken: 0,
-          ballsBowled: 0,
-
-          biggestWin: {
-            margin: 0,
-            type: null,
-            matchId: null,
-          },
-
-          highestScore: { runs: 0, wickets: 0, overs: 0, matchId: null },
-          lowestScore: { runs: null, wickets: null, overs: 0, matchId: null },
-
-          // REPLACE the 6 defended/chase records with these:
-          defending: {
-            wins: [], // matchIds where they batted first and won
-            losses: [], // matchIds where they batted first and lost
-          },
-
-          chasing: {
-            wins: [], // matchIds where they batted second and won
-            losses: [], // matchIds where they batted second and lost
-          },
-
-          highestTotalDefended: {
-            runs: 0,
-            wickets: 0,
-            overs: 0,
-            againstTeamId: null,
-            matchId: null,
-          },
-          lowestTotalDefended: {
-            runs: null,
-            wickets: 0,
-            overs: 0,
-            againstTeamId: null,
-            matchId: null,
-          },
-          highestSuccessfulChase: {
-            runs: 0,
-            wickets: 0,
-            overs: 0,
-            ballsRemaining: 0,
-            againstTeamId: null,
-            matchId: null,
-          },
-          lowestSuccessfulChase: {
-            runs: null,
-            wickets: 0,
-            overs: 0,
-            ballsRemaining: 0,
-            againstTeamId: null,
-            matchId: null,
-          },
-        },
-      });
-    }
-  }
-
-  const updatedTeams = Array.from(mergedTeamsMap.values());
-
-  if (updatedTeams.length) {
-    await Team.insertMany(updatedTeams);
-  }
-
-  updatedTeams.forEach((team) => {
-    const key = `${team.seasonId}_${norm(team.name)}`;
-    teamMap.set(key, team);
-  });
-
-  console.log(`✅ Teams: ${updatedTeams.length}`);
-
   console.log("🚀 Migrating Matches");
 
   const matches = await OldMatch.find({}).lean();
@@ -432,198 +455,183 @@ async function migrateRawData() {
 function updateTeamStats(match) {
   if (!match.result) return;
 
+  const teamAName = norm(match.teams.teamA.name);
+
+  const teamBName = norm(match.teams.teamB.name);
+
+  const seasonTeamA = getSeasonTeamStats(match.seasonId, teamAName);
+
+  const seasonTeamB = getSeasonTeamStats(match.seasonId, teamBName);
+
+  const overallTeamA = getOverallTeamStats(teamAName);
+
+  const overallTeamB = getOverallTeamStats(teamBName);
+
+  const profileA = getTeamProfile(teamAName);
+
+  const profileB = getTeamProfile(teamBName);
+
+  const allSeasonTeams = [seasonTeamA, seasonTeamB];
+
+  const allOverallTeams = [overallTeamA, overallTeamB];
+
+  /* =========================================
+     PROFILE UPDATES
+  ========================================= */
+
+  for (const profile of [profileA, profileB]) {
+    profile.totalMatches += 1;
+
+    profile.lastMatchAt = match.createdAt;
+
+    addSeasonToProfile(profile, match.seasonId);
+  }
+
+  /* =========================================
+     MATCHES PLAYED
+  ========================================= */
+
+  for (const stats of [seasonTeamA, seasonTeamB, overallTeamA, overallTeamB]) {
+    stats.stats.played += 1;
+  }
+
+  /* =========================================
+     INNINGS STATS
+  ========================================= */
+
   for (const innings of match.innings || []) {
-    const battingTeam = teamMap.get(
-      `${match.seasonId}_${norm(innings.battingTeam)}`,
-    );
+    if (innings.isSuperOver) continue;
 
-    const bowlingTeam = teamMap.get(
-      `${match.seasonId}_${norm(innings.bowlingTeam)}`,
-    );
+    const battingName = norm(innings.battingTeam);
 
-    if (!battingTeam || !bowlingTeam) continue;
+    const bowlingName = norm(innings.bowlingTeam);
+
+    const battingSeason = battingName === teamAName ? seasonTeamA : seasonTeamB;
+
+    const bowlingSeason = bowlingName === teamAName ? seasonTeamA : seasonTeamB;
+
+    const battingOverall =
+      battingName === teamAName ? overallTeamA : overallTeamB;
+
+    const bowlingOverall =
+      bowlingName === teamAName ? overallTeamA : overallTeamB;
 
     const runs = innings.totalRuns || 0;
+
     const wickets = innings.wickets || 0;
+
     const balls = innings.balls || 0;
+
     const overs = ballsToOvers(balls);
 
-    battingTeam.stats.runsScored += runs;
-    battingTeam.stats.wicketsLost += wickets;
-    battingTeam.stats.ballsFaced += balls;
+    for (const stats of [battingSeason, battingOverall]) {
+      stats.stats.runsScored += runs;
+      stats.stats.wicketsLost += wickets;
+      stats.stats.ballsFaced += balls;
 
-    bowlingTeam.stats.runsConceded += runs;
-    bowlingTeam.stats.wicketsTaken += wickets;
-    bowlingTeam.stats.ballsBowled += balls;
+      if (runs > stats.stats.highestScore?.runs || 0) {
+        stats.stats.highestScore = {
+          runs,
+          wickets,
+          overs,
+          matchId: match._id,
+        };
+      }
 
-    if (runs > battingTeam.stats.highestScore.runs) {
-      battingTeam.stats.highestScore = {
-        runs,
-        wickets,
-        overs,
-        matchId: match._id,
-      };
+      if (
+        stats.stats.lowestScore?.runs === null ||
+        stats.stats.lowestScore?.runs === undefined ||
+        runs < stats.stats.lowestScore.runs
+      ) {
+        stats.stats.lowestScore = {
+          runs,
+          wickets,
+          overs,
+          matchId: match._id,
+        };
+      }
     }
 
-    if (
-      battingTeam.stats.lowestScore.runs === null ||
-      runs < battingTeam.stats.lowestScore.runs
-    ) {
-      battingTeam.stats.lowestScore = {
-        runs,
-        wickets,
-        overs,
-        matchId: match._id,
-      };
+    for (const stats of [bowlingSeason, bowlingOverall]) {
+      stats.stats.runsConceded += runs;
+      stats.stats.wicketsTaken += wickets;
+      stats.stats.ballsBowled += balls;
+    }
+
+    /* =========================================
+       BALL BY BALL ANALYTICS
+    ========================================= */
+
+    for (const ball of innings.ballByBall || []) {
+      const totalRuns =
+        (ball.runs || 0) +
+        (ball.extras?.wides || 0) +
+        (ball.extras?.noBalls || 0);
+
+      const isLegal = !ball.extras?.wides && !ball.extras?.noBalls;
+
+      const batterRuns = ball.runs || 0;
+
+      if (batterRuns === 4) {
+        battingSeason.stats.foursScored += 1;
+        battingOverall.stats.foursScored += 1;
+
+        bowlingSeason.stats.foursConceded += 1;
+        bowlingOverall.stats.foursConceded += 1;
+      }
+
+      if (batterRuns === 6) {
+        battingSeason.stats.sixesScored += 1;
+        battingOverall.stats.sixesScored += 1;
+
+        bowlingSeason.stats.sixesConceded += 1;
+        bowlingOverall.stats.sixesConceded += 1;
+      }
+
+      if (isLegal && totalRuns === 0) {
+        battingSeason.stats.dotBallsPlayed += 1;
+        battingOverall.stats.dotBallsPlayed += 1;
+
+        bowlingSeason.stats.dotBallsBowled += 1;
+        bowlingOverall.stats.dotBallsBowled += 1;
+      }
     }
   }
 
-  const teamA = teamMap.get(
-    `${match.seasonId}_${norm(match.teams.teamA.name)}`,
-  );
+  /* =========================================
+     RESULT
+  ========================================= */
 
-  const teamB = teamMap.get(
-    `${match.seasonId}_${norm(match.teams.teamB.name)}`,
-  );
+  const winner = norm(match.result?.winner);
 
-  if (!teamA || !teamB) return;
+  if (!winner || winner === "tied") {
+    for (const stats of [...allSeasonTeams, ...allOverallTeams]) {
+      stats.stats.ties += 1;
+    }
 
-  teamA.stats.played += 1;
-  teamB.stats.played += 1;
-
-  const winner = match.result.winner;
-
-  if (!winner || winner === "TIED") {
-    teamA.stats.ties += 1;
-    teamB.stats.ties += 1;
-
-    teamA.stats.points += 1;
-    teamB.stats.points += 1;
+    seasonTeamA.stats.points += 1;
+    seasonTeamB.stats.points += 1;
 
     return;
   }
 
-  const normalizedWinner = norm(winner);
+  const winSeason = winner === teamAName ? seasonTeamA : seasonTeamB;
 
-  const winTeam = normalizedWinner === norm(teamA.name) ? teamA : teamB;
-  const loseTeam = normalizedWinner === norm(teamA.name) ? teamB : teamA;
+  const loseSeason = winner === teamAName ? seasonTeamB : seasonTeamA;
 
-  winTeam.stats.wins += 1;
-  loseTeam.stats.losses += 1;
-  winTeam.stats.points += 2;
+  const winOverall = winner === teamAName ? overallTeamA : overallTeamB;
 
-  if (match.result.margin > winTeam.stats.biggestWin.margin) {
-    winTeam.stats.biggestWin = {
-      margin: match.result.margin,
-      type: match.result.type,
-      matchId: match._id,
-    };
+  const loseOverall = winner === teamAName ? overallTeamB : overallTeamA;
+
+  for (const stats of [winSeason, winOverall]) {
+    stats.stats.wins += 1;
   }
 
-  /* =====================================================
-     DEFENDED / CHASE RECORDS
-  ===================================================== */
-
-  const firstInnings = match.innings?.[0];
-  const secondInnings = match.innings?.[1];
-
-  if (firstInnings && secondInnings) {
-    const firstBatTeam = teamMap.get(
-      `${match.seasonId}_${norm(firstInnings.battingTeam)}`,
-    );
-
-    const secondBatTeam = teamMap.get(
-      `${match.seasonId}_${norm(secondInnings.battingTeam)}`,
-    );
-
-    const firstRuns = firstInnings.totalRuns || 0;
-    const firstWickets = firstInnings.wickets || 0;
-    const firstBalls = firstInnings.balls || 0;
-    const firstOvers = ballsToOvers(firstBalls);
-
-    const secondRuns = secondInnings.totalRuns || 0;
-    const secondWickets = secondInnings.wickets || 0;
-    const secondBalls = secondInnings.balls || 0;
-    const secondOvers = ballsToOvers(secondBalls);
-
-    /* ================================================
-       SUCCESSFUL DEFENCE
-    ================================================ */
-
-    if (winTeam._id.toString() === firstBatTeam?._id.toString()) {
-      if (firstRuns > winTeam.stats.highestTotalDefended.runs) {
-        winTeam.stats.highestTotalDefended = {
-          runs: firstRuns,
-          wickets: firstWickets,
-          overs: firstOvers,
-          againstTeamId: loseTeam._id,
-          matchId: match._id,
-        };
-      }
-
-      if (
-        winTeam.stats.lowestTotalDefended.runs === null ||
-        firstRuns < winTeam.stats.lowestTotalDefended.runs
-      ) {
-        winTeam.stats.lowestTotalDefended = {
-          runs: firstRuns,
-          wickets: firstWickets,
-          overs: firstOvers,
-          againstTeamId: loseTeam._id,
-          matchId: match._id,
-        };
-      }
-    }
-
-    if (winTeam._id.toString() === firstBatTeam?._id.toString()) {
-      // win team batted first → defended successfully
-      winTeam.stats.defending.wins.push(match._id);
-      loseTeam.stats.chasing.losses.push(match._id);
-
-      // highest/lowest total defended (existing logic)...
-    } else if (winTeam._id.toString() === secondBatTeam?._id.toString()) {
-      // win team batted second → chased successfully
-      winTeam.stats.chasing.wins.push(match._id);
-      loseTeam.stats.defending.losses.push(match._id);
-
-      // highest/lowest successful chase (existing logic)...
-    }
-
-    /* ================================================
-       SUCCESSFUL CHASE
-    ================================================ */
-
-    if (winTeam._id.toString() === secondBatTeam?._id.toString()) {
-      const totalBalls = (match.matchConfig?.overs || 0) * 6;
-      const ballsUsed = secondInnings.balls || 0;
-      const ballsRemaining = Math.max(totalBalls - ballsUsed, 0);
-
-      if (secondRuns > winTeam.stats.highestSuccessfulChase.runs) {
-        winTeam.stats.highestSuccessfulChase = {
-          runs: secondRuns,
-          wickets: secondWickets,
-          overs: secondOvers,
-          ballsRemaining,
-          againstTeamId: loseTeam._id,
-          matchId: match._id,
-        };
-      }
-
-      if (
-        winTeam.stats.lowestSuccessfulChase.runs === null ||
-        secondRuns < winTeam.stats.lowestSuccessfulChase.runs
-      ) {
-        winTeam.stats.lowestSuccessfulChase = {
-          runs: secondRuns,
-          wickets: secondWickets,
-          overs: secondOvers,
-          ballsRemaining,
-          againstTeamId: loseTeam._id,
-          matchId: match._id,
-        };
-      }
-    }
+  for (const stats of [loseSeason, loseOverall]) {
+    stats.stats.losses += 1;
   }
+
+  winSeason.stats.points += 2;
 }
 
 /* =========================================================
@@ -928,15 +936,16 @@ function processMatch(match) {
 async function bulkSave() {
   console.log("🚀 Saving Aggregated Stats");
 
-  if (teamMap.size) {
-    await Team.bulkWrite(
-      Array.from(teamMap.values()).map((team) => ({
-        replaceOne: {
-          filter: { _id: team._id },
-          replacement: team,
-        },
-      })),
-    );
+  if (teamProfileMap.size) {
+    await TeamProfile.insertMany(Array.from(teamProfileMap.values()));
+  }
+
+  if (overallTeamStatsMap.size) {
+    await OverallTeamStats.insertMany(Array.from(overallTeamStatsMap.values()));
+  }
+
+  if (seasonTeamStatsMap.size) {
+    await TeamSeasonStats.insertMany(Array.from(seasonTeamStatsMap.values()));
   }
 
   if (seasonStatsMap.size) {
@@ -994,7 +1003,9 @@ async function main() {
 
     await Promise.all([
       Season.deleteMany({}),
-      Team.deleteMany({}),
+      TeamProfile.deleteMany({}),
+      OverallTeamStats.deleteMany({}),
+      TeamSeasonStats.deleteMany({}),
       Match.deleteMany({}),
       PlayerSeasonStats.deleteMany({}),
       OverallPlayerStats.deleteMany({}),

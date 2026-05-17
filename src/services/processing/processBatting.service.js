@@ -15,7 +15,10 @@ import { createEmptyStats } from "./shared/statsFactory.js";
 export const processBatting = async (match, state, accumulators) => {
   const processedPlayers = new Set();
 
-  for (const innings of match.innings || []) {
+  // Exclude Super Over innings from player stats (they're tie-breakers only)
+  const inningsToProcess = (match.innings || []).filter((inn) => !inn.isSuperOver);
+
+  for (const innings of inningsToProcess) {
     const battingTeam = innings.battingTeam;
 
     const bowlingTeam = innings.bowlingTeam;

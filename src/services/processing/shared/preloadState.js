@@ -1,151 +1,149 @@
-import OverallPlayerStats
-  from "../../../models/OverallPlayerStats.js";
+import OverallPlayerStats from "../../../models/OverallPlayerStats.js";
 
-import PlayerSeasonStats
-  from "../../../models/PlayerSeasonStats.js";
+import PlayerSeasonStats from "../../../models/PlayerSeasonStats.js";
 
-import PlayerProfile
-  from "../../../models/PlayerProfile.js";
+import PlayerProfile from "../../../models/PlayerProfile.js";
 
-import Team
-  from "../../../models/team.model.js";
+import TeamProfile from "../../../models/TeamProfile.js";
+
+import OverallTeamStats from "../../../models/OverallTeamStats.js";
+
+import TeamSeasonStats from "../../../models/TeamSeasonStats.js";
+
+/* ======================================================
+   HELPERS
+====================================================== */
+
+const normalize = (v) => v?.trim()?.toLowerCase?.() || "";
 
 /* ======================================================
    PRELOAD MATCH STATE
 ====================================================== */
 
-export const preloadMatchState =
-  async (match) => {
-    const playerNames =
-      new Set();
+export const preloadMatchState = async (match) => {
+  const playerNames = new Set();
 
-    /* =========================================
+  const teamNames = new Set();
+
+  /* =========================================
+       COLLECT TEAMS
+    ========================================= */
+
+  teamNames.add(normalize(match.teams.teamA.name));
+
+  teamNames.add(normalize(match.teams.teamB.name));
+
+  /* =========================================
        COLLECT PLAYERS
     ========================================= */
 
-    for (const innings of match.innings ||
-      []) {
-      /* BATTERS */
+  for (const innings of match.innings || []) {
+    /* BATTERS */
 
-      Object.keys(
-        innings.battingStats || {}
-      ).forEach((name) =>
-        playerNames.add(
-          name
-            .trim()
-            .toLowerCase()
-        )
-      );
+    Object.keys(innings.battingStats || {}).forEach((name) =>
+      playerNames.add(normalize(name)),
+    );
 
-      /* BOWLERS */
+    /* BOWLERS */
 
-      Object.keys(
-        innings.bowlingStats || {}
-      ).forEach((name) =>
-        playerNames.add(
-          name
-            .trim()
-            .toLowerCase()
-        )
-      );
+    Object.keys(innings.bowlingStats || {}).forEach((name) =>
+      playerNames.add(normalize(name)),
+    );
 
-      /* FIELDERS */
+    /* FIELDERS */
 
-      Object.values(
-        innings.dismissals || {}
-      ).forEach((dismissal) => {
-        if (
-          dismissal?.fielder
-        ) {
-          playerNames.add(
-            dismissal.fielder
-              .trim()
-              .toLowerCase()
-          );
-        }
-      });
-    }
+    Object.values(innings.dismissals || {}).forEach((dismissal) => {
+      if (dismissal?.fielder) {
+        playerNames.add(normalize(dismissal.fielder));
+      }
+    });
+  }
 
-    const names =
-      Array.from(playerNames);
+  const names = Array.from(playerNames);
 
-    /* =========================================
+  const teams = Array.from(teamNames);
+
+  /* =========================================
        LOAD ALL DATA
     ========================================= */
 
-    const [
-      overallStats,
-      seasonStats,
-      playerProfiles,
-      teams,
-    ] = await Promise.all([
-      OverallPlayerStats.find({
-        name: {
-          $in: names,
-        },
-      }),
+  const [
+    overallStats,
+    seasonStats,
+    playerProfiles,
 
-      PlayerSeasonStats.find({
-        seasonId:
-          match.seasonId,
+    teamProfiles,
+    overallTeamStats,
+    seasonTeamStats,
+  ] = await Promise.all([
+    /* PLAYERS */
 
-        name: {
-          $in: names,
-        },
-      }),
+    OverallPlayerStats.find({
+      name: {
+        $in: names,
+      },
+    }),
 
-      PlayerProfile.find({
-        name: {
-          $in: names,
-        },
-      }),
+    PlayerSeasonStats.find({
+      seasonId: match.seasonId,
 
-      Team.find({
-        seasonId:
-          match.seasonId,
-      }),
-    ]);
+      name: {
+        $in: names,
+      },
+    }),
 
-    /* =========================================
+    PlayerProfile.find({
+      name: {
+        $in: names,
+      },
+    }),
+
+    /* TEAMS */
+
+    TeamProfile.find({
+      name: {
+        $in: teams,
+      },
+    }),
+
+    OverallTeamStats.find({
+      name: {
+        $in: teams,
+      },
+    }),
+
+    TeamSeasonStats.find({
+      seasonId: match.seasonId,
+
+      name: {
+        $in: teams,
+      },
+    }),
+  ]);
+
+  /* =========================================
        MAPS
     ========================================= */
 
-    return {
-      overallStatsMap:
-        new Map(
-          overallStats.map(
-            (doc) => [
-              doc.name,
-              doc,
-            ]
-          )
-        ),
+  return {
+    /* PLAYERS */
 
-      seasonStatsMap:
-        new Map(
-          seasonStats.map(
-            (doc) => [
-              doc.name,
-              doc,
-            ]
-          )
-        ),
+    overallStatsMap: new Map(overallStats.map((doc) => [doc.name, doc])),
 
-      playerProfilesMap:
-        new Map(
-          playerProfiles.map(
-            (doc) => [
-              doc.name,
-              doc,
-            ]
-          )
-        ),
+    seasonStatsMap: new Map(seasonStats.map((doc) => [doc.name, doc])),
 
-      teamsMap: new Map(
-        teams.map((doc) => [
-          doc.name,
-          doc,
-        ])
-      ),
-    };
+    playerProfilesMap: new Map(playerProfiles.map((doc) => [doc.name, doc])),
+
+    /* TEAMS */
+
+    teamProfilesMap: new Map(teamProfiles.map((doc) => [doc.name, doc])),
+
+    overallTeamStatsMap: new Map(
+      overallTeamStats.map((doc) => [doc.name, doc]),
+    ),
+
+    seasonTeamStatsMap: new Map(
+      seasonTeamStats.map((doc) => [`${doc.seasonId}_${doc.name}`, doc]),
+    ),
   };
+};

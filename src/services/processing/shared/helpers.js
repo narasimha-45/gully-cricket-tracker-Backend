@@ -61,11 +61,16 @@ export const incrementMapValue = (obj, key, value = 1) => {
   obj[key] = (obj[key] || 0) + value;
 };
 
-export const incrementNestedValue = (obj, key1, key2) => {
-  if (!obj[key1]) obj[key1] = { total: 0 };
-  if (typeof obj[key1] === "number") {
-    obj[key1] = { total: obj[key1] };
+export const incrementNestedValue = (obj, key, nestedKey, amount = 1) => {
+  if (!obj[key]) {
+    obj[key] = {
+      total: 0,
+    };
   }
-  obj[key1].total = (obj[key1].total || 0) + 1;
-  obj[key1][key2] = (obj[key1][key2] || 0) + 1;
+
+  obj[key].total = (obj[key].total || 0) + amount;
+
+  if (nestedKey) {
+    obj[key][nestedKey] = (obj[key][nestedKey] || 0) + amount;
+  }
 };

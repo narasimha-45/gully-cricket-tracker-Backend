@@ -31,6 +31,8 @@ export const getMatchScorecard = async (matchId) => {
       result: match.result,
 
       teams: match.teams,
+
+      totalOvers: match.totalOvers,
     },
 
     innings: match.innings || [],

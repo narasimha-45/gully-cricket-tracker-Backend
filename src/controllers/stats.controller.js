@@ -47,7 +47,7 @@ export const getPlayerHeadToHead = async (req, res) => {
 const handleResponse = async (res, serviceCall) => {
   try {
     const data = await serviceCall();
-
+    console.log("data",data)
     return res.json({
       success: true,
       data,
