@@ -1,5 +1,9 @@
 import mongoose from "mongoose";
 
+/* =====================================================
+   REUSABLE SPLIT SCHEMA
+===================================================== */
+
 const SplitSchema = new mongoose.Schema(
   {
     matches: {
@@ -47,48 +51,134 @@ const SplitSchema = new mongoose.Schema(
   }
 );
 
-const SeasonPlayerSplitsSchema = new mongoose.Schema(
-  {
-    seasonId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Season",
-      required: true,
+/* =====================================================
+   SEASON PLAYER SPLITS
+===================================================== */
+
+const SeasonPlayerSplitsSchema =
+  new mongoose.Schema(
+    {
+      seasonId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Season",
+        required: true,
+      },
+
+      playerId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "PlayerProfile",
+        required: true,
+      },
+
+      /* =================================================
+         POSITION SPLITS
+      =================================================
+
+         Keys:
+         "1", "2", "3", ...
+      ================================================= */
+
+      byPosition: {
+        type: Map,
+
+        of: SplitSchema,
+
+        default: {},
+      },
+
+      /* =================================================
+         OPPONENT SPLITS
+      =================================================
+
+         Keys:
+         Team ID string
+      ================================================= */
+
+      byOpponent: {
+        type: Map,
+
+        of: SplitSchema,
+
+        default: {},
+      },
+
+      /* =================================================
+         TEAM SPLITS
+      =================================================
+
+         Keys:
+         Team ID string
+      ================================================= */
+
+      byTeam: {
+        type: Map,
+
+        of: SplitSchema,
+
+        default: {},
+      },
+
+      /* =================================================
+         BATTING INNINGS SPLITS
+      =================================================
+
+         Keys:
+         "FIRST"
+         "SECOND"
+      ================================================= */
+
+      battingInnings: {
+        type: Map,
+
+        of: SplitSchema,
+
+        default: {},
+      },
+
+      /* =================================================
+         BOWLING INNINGS SPLITS
+      =================================================
+
+         Keys:
+         "FIRST"
+         "SECOND"
+      ================================================= */
+
+      bowlingInnings: {
+        type: Map,
+
+        of: SplitSchema,
+
+        default: {},
+      },
+
+      /* =================================================
+         MATCH RESULT SPLITS
+      =================================================
+
+         Keys:
+         "WON"
+         "LOST"
+         "TIED"
+         "NO_RESULT"
+      ================================================= */
+
+      byMatchResult: {
+        type: Map,
+
+        of: SplitSchema,
+
+        default: {},
+      },
     },
+    {
+      timestamps: true,
+    }
+  );
 
-    playerId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "PlayerProfile",
-      required: true,
-    },
-
-    byPosition: {
-      type: Map,
-
-      of: SplitSchema,
-
-      default: {},
-    },
-
-    byOpponent: {
-      type: Map,
-
-      of: SplitSchema,
-
-      default: {},
-    },
-
-    byTeam: {
-      type: Map,
-
-      of: SplitSchema,
-
-      default: {},
-    },
-  },
-  {
-    timestamps: true,
-  }
-);
+/* =====================================================
+   INDEXES
+===================================================== */
 
 SeasonPlayerSplitsSchema.index(
   {
@@ -100,8 +190,17 @@ SeasonPlayerSplitsSchema.index(
   }
 );
 
+SeasonPlayerSplitsSchema.index({
+  seasonId: 1,
+});
+
+SeasonPlayerSplitsSchema.index({
+  playerId: 1,
+});
+
 const SeasonPlayerSplits =
-  mongoose.models.SeasonPlayerSplits ||
+  mongoose.models
+    .SeasonPlayerSplits ||
   mongoose.model(
     "SeasonPlayerSplits",
     SeasonPlayerSplitsSchema

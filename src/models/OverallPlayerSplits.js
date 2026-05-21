@@ -65,10 +65,9 @@ const OverallPlayerSplitsSchema =
         unique: true,
       },
 
-      /*
-        POSITION KEYS:
-        "1", "2", "3", ...
-      */
+      /* =================================================
+         POSITION SPLITS
+      ================================================= */
 
       byPosition: {
         type: Map,
@@ -78,9 +77,9 @@ const OverallPlayerSplitsSchema =
         default: {},
       },
 
-      /*
-        OPPONENT TEAM ID STRING
-      */
+      /* =================================================
+         OPPONENT SPLITS
+      ================================================= */
 
       byOpponent: {
         type: Map,
@@ -90,11 +89,54 @@ const OverallPlayerSplitsSchema =
         default: {},
       },
 
-      /*
-        TEAM ID STRING
-      */
+      /* =================================================
+         TEAM SPLITS
+      ================================================= */
 
       byTeam: {
+        type: Map,
+
+        of: SplitSchema,
+
+        default: {},
+      },
+
+      /* =================================================
+         INNINGS CONTEXT
+      =================================================
+
+         Keys:
+         "FIRST"
+         "SECOND"
+      ================================================= */
+
+      battingInnings: {
+        type: Map,
+
+        of: SplitSchema,
+
+        default: {},
+      },
+
+      bowlingInnings: {
+        type: Map,
+
+        of: SplitSchema,
+
+        default: {},
+      },
+
+      /* =================================================
+         MATCH RESULT CONTEXT
+      =================================================
+
+         Keys:
+         "WON"
+         "LOST"
+         "TIED"
+      ================================================= */
+
+      byMatchResult: {
         type: Map,
 
         of: SplitSchema,
@@ -106,6 +148,10 @@ const OverallPlayerSplitsSchema =
       timestamps: true,
     }
   );
+
+/* =====================================================
+   INDEXES
+===================================================== */
 
 OverallPlayerSplitsSchema.index({
   playerId: 1,

@@ -97,20 +97,17 @@ const TeamStatsSchema = new mongoose.Schema(
       default: 0,
     },
 
-    biggestWin: {
-      margin: {
-        type: Number,
-        default: 0,
+    biggestWins: {
+      byRuns: {
+        margin: 0,
+
+        matchId: null,
       },
 
-      type: {
-        type: String,
-        default: null,
-      },
+      byWickets: {
+        margin: 0,
 
-      matchId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Match",
+        matchId: null,
       },
     },
 
