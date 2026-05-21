@@ -1,45 +1,45 @@
-// models/OverallPlayerStats.js
-
 import mongoose from "mongoose";
+
+const RivalPlayerSchema = new mongoose.Schema(
+  {
+    playerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "PlayerProfile",
+      required: true,
+    },
+
+    count: {
+      type: Number,
+      default: 0,
+    },
+  },
+  {
+    _id: false,
+  }
+);
 
 const OverallPlayerStatsSchema = new mongoose.Schema(
   {
-    name: {
-      type: String,
-
+    playerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "PlayerProfile",
       required: true,
-
       unique: true,
-
-      trim: true,
-
-      lowercase: true,
     },
 
     seasonsPlayed: [
       {
         type: mongoose.Schema.Types.ObjectId,
-
         ref: "Season",
       },
     ],
 
     totalMatches: {
       type: Number,
-
       default: 0,
     },
 
-    /* =========================================
-       BATTING
-    ========================================= */
-
     batting: {
-      matches: {
-        type: Number,
-        default: 0,
-      },
-
       innings: {
         type: Number,
         default: 0,
@@ -80,40 +80,39 @@ const OverallPlayerStatsSchema = new mongoose.Schema(
         default: 0,
       },
 
-      /* HIGHEST SCORE */
-
       highestScore: {
         runs: {
           type: Number,
           default: 0,
         },
 
-        seasonId: {
-          type: mongoose.Schema.Types.ObjectId,
-
-          ref: "Season",
-
-          default: null,
-        },
-
         matchId: {
           type: mongoose.Schema.Types.ObjectId,
-
           ref: "Match",
-
-          default: null,
         },
       },
 
-      /* SCORE BUCKETS */
-
-      scoreRanges: {
+      scoreBuckets: {
         type: [Number],
-
-        default: () => Array(11).fill(0),
+        default: () => Array(10).fill(0),
       },
 
-      /* HOW PLAYER GOT OUT */
+      milestones: {
+        thirtyPlus: {
+          type: Number,
+          default: 0,
+        },
+
+        fiftyPlus: {
+          type: Number,
+          default: 0,
+        },
+
+        hundredPlus: {
+          type: Number,
+          default: 0,
+        },
+      },
 
       dismissalTypes: {
         bowled: {
@@ -145,64 +144,20 @@ const OverallPlayerStatsSchema = new mongoose.Schema(
           type: Number,
           default: 0,
         },
+
+        notOut: {
+          type: Number,
+          default: 0,
+        },
       },
 
-      /* WHICH BOWLERS DISMISSED HIM */
-
-      dismissedBy: {
-        type: Map,
-
-        of: {
-          total: {
-            type: Number,
-            default: 0,
-          },
-
-          bowled: {
-            type: Number,
-            default: 0,
-          },
-
-          caught: {
-            type: Number,
-            default: 0,
-          },
-
-          lbw: {
-            type: Number,
-            default: 0,
-          },
-
-          runOut: {
-            type: Number,
-            default: 0,
-          },
-
-          stumped: {
-            type: Number,
-            default: 0,
-          },
-
-          hitWicket: {
-            type: Number,
-            default: 0,
-          },
-        },
-
-        default: {},
+      mostDismissedBy: {
+        type: [RivalPlayerSchema],
+        default: [],
       },
     },
 
-    /* =========================================
-       BOWLING
-    ========================================= */
-
     bowling: {
-      matches: {
-        type: Number,
-        default: 0,
-      },
-
       innings: {
         type: Number,
         default: 0,
@@ -228,8 +183,6 @@ const OverallPlayerStatsSchema = new mongoose.Schema(
         default: 0,
       },
 
-      /* BEST BOWLING */
-
       bestBowling: {
         wickets: {
           type: Number,
@@ -241,24 +194,11 @@ const OverallPlayerStatsSchema = new mongoose.Schema(
           default: 0,
         },
 
-        seasonId: {
-          type: mongoose.Schema.Types.ObjectId,
-
-          ref: "Season",
-
-          default: null,
-        },
-
         matchId: {
           type: mongoose.Schema.Types.ObjectId,
-
           ref: "Match",
-
-          default: null,
         },
       },
-
-      /* WICKET TYPES */
 
       wicketTypes: {
         bowled: {
@@ -287,50 +227,23 @@ const OverallPlayerStatsSchema = new mongoose.Schema(
         },
       },
 
-      /* WHICH BATTERS HE DISMISSED */
-
-      dismissedBatters: {
-        type: Map,
-
-        of: {
-          total: {
-            type: Number,
-            default: 0,
-          },
-
-          bowled: {
-            type: Number,
-            default: 0,
-          },
-
-          caught: {
-            type: Number,
-            default: 0,
-          },
-
-          lbw: {
-            type: Number,
-            default: 0,
-          },
-
-          stumped: {
-            type: Number,
-            default: 0,
-          },
-
-          hitWicket: {
-            type: Number,
-            default: 0,
-          },
+      wicketHauls: {
+        threeWickets: {
+          type: Number,
+          default: 0,
         },
 
-        default: {},
+        fiveWickets: {
+          type: Number,
+          default: 0,
+        },
+      },
+
+      mostDismissedBatters: {
+        type: [RivalPlayerSchema],
+        default: [],
       },
     },
-
-    /* =========================================
-       FIELDING
-    ========================================= */
 
     fielding: {
       catches: {
@@ -349,10 +262,6 @@ const OverallPlayerStatsSchema = new mongoose.Schema(
       },
     },
 
-    /* =========================================
-       ACHIEVEMENTS
-    ========================================= */
-
     achievements: {
       mom: {
         type: Number,
@@ -362,14 +271,8 @@ const OverallPlayerStatsSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  },
+  }
 );
-
-/* =========================================
-   INDEXES
-========================================= */
-
-/* LEADERBOARDS */
 
 OverallPlayerStatsSchema.index({
   "batting.runs": -1,
@@ -379,18 +282,11 @@ OverallPlayerStatsSchema.index({
   "bowling.wickets": -1,
 });
 
-OverallPlayerStatsSchema.index({
-  "fielding.catches": -1,
-});
-
-OverallPlayerStatsSchema.index({
-  "achievements.mom": -1,
-});
-
-/* ========================================= */
-
 const OverallPlayerStats =
   mongoose.models.OverallPlayerStats ||
-  mongoose.model("OverallPlayerStats", OverallPlayerStatsSchema);
+  mongoose.model(
+    "OverallPlayerStats",
+    OverallPlayerStatsSchema
+  );
 
 export default OverallPlayerStats;

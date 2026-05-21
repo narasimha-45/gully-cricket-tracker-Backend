@@ -1,203 +1,233 @@
 import mongoose from "mongoose";
 
-const TeamSeasonStatsSchema = new mongoose.Schema(
+const TeamStatsSchema = new mongoose.Schema(
+  {
+    played: {
+      type: Number,
+      default: 0,
+    },
+
+    wins: {
+      type: Number,
+      default: 0,
+    },
+
+    losses: {
+      type: Number,
+      default: 0,
+    },
+
+    ties: {
+      type: Number,
+      default: 0,
+    },
+
+    noResults: {
+      type: Number,
+      default: 0,
+    },
+
+    wonBattingFirst: {
+      type: MatchReferenceSchema,
+      default: () => ({}),
+    },
+
+    lostBattingFirst: {
+      type: MatchReferenceSchema,
+      default: () => ({}),
+    },
+
+    wonBowlingFirst: {
+      type: MatchReferenceSchema,
+      default: () => ({}),
+    },
+
+    lostBowlingFirst: {
+      type: MatchReferenceSchema,
+      default: () => ({}),
+    },
+
+    successfulChases: {
+      type: MatchReferenceSchema,
+      default: () => ({}),
+    },
+
+    failedChases: {
+      type: MatchReferenceSchema,
+      default: () => ({}),
+    },
+
+    defendedTotals: {
+      type: MatchReferenceSchema,
+      default: () => ({}),
+    },
+
+    failedDefends: {
+      type: MatchReferenceSchema,
+      default: () => ({}),
+    },
+
+    runsScored: {
+      type: Number,
+      default: 0,
+    },
+
+    wicketsLost: {
+      type: Number,
+      default: 0,
+    },
+
+    ballsFaced: {
+      type: Number,
+      default: 0,
+    },
+
+    runsConceded: {
+      type: Number,
+      default: 0,
+    },
+
+    wicketsTaken: {
+      type: Number,
+      default: 0,
+    },
+
+    ballsBowled: {
+      type: Number,
+      default: 0,
+    },
+
+    biggestWin: {
+      margin: {
+        type: Number,
+        default: 0,
+      },
+
+      type: {
+        type: String,
+        default: null,
+      },
+
+      matchId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Match",
+      },
+    },
+
+    highestScore: {
+      runs: {
+        type: Number,
+        default: 0,
+      },
+
+      wickets: {
+        type: Number,
+        default: 0,
+      },
+
+      overs: {
+        type: Number,
+        default: 0,
+      },
+
+      matchId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Match",
+      },
+    },
+
+    lowestScore: {
+      runs: {
+        type: Number,
+        default: null,
+      },
+
+      wickets: {
+        type: Number,
+        default: null,
+      },
+
+      overs: {
+        type: Number,
+        default: 0,
+      },
+
+      matchId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Match",
+      },
+    },
+
+    highestSuccessfulChase: {
+      target: {
+        type: Number,
+        default: 0,
+      },
+
+      achieved: {
+        type: Number,
+        default: 0,
+      },
+
+      matchId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Match",
+      },
+    },
+
+    lowestDefendedScore: {
+      defended: {
+        type: Number,
+        default: 0,
+      },
+
+      matchId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Match",
+      },
+    },
+  },
+  {
+    _id: false,
+  },
+);
+
+const MatchReferenceSchema = new mongoose.Schema(
+  {
+    count: {
+      type: Number,
+      default: 0,
+    },
+
+    recentMatches: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Match",
+      },
+    ],
+  },
+  {
+    _id: false,
+  },
+);
+
+const SeasonTeamStatsSchema = new mongoose.Schema(
   {
     seasonId: {
       type: mongoose.Schema.Types.ObjectId,
-
       ref: "Season",
-
       required: true,
     },
 
-    name: {
-      type: String,
-
+    teamId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "TeamProfile",
       required: true,
-
-      trim: true,
-
-      lowercase: true,
     },
 
     stats: {
-      /* MATCHES */
-
-      played: {
-        type: Number,
-        default: 0,
-      },
-
-      wins: {
-        type: Number,
-        default: 0,
-      },
-
-      losses: {
-        type: Number,
-        default: 0,
-      },
-
-      ties: {
-        type: Number,
-        default: 0,
-      },
-
-      noResults: {
-        type: Number,
-        default: 0,
-      },
-
-      points: {
-        type: Number,
-        default: 0,
-      },
-
-      /* BATTING */
-
-      runsScored: {
-        type: Number,
-        default: 0,
-      },
-
-      wicketsLost: {
-        type: Number,
-        default: 0,
-      },
-
-      ballsFaced: {
-        type: Number,
-        default: 0,
-      },
-
-      foursScored: {
-        type: Number,
-        default: 0,
-      },
-
-      sixesScored: {
-        type: Number,
-        default: 0,
-      },
-
-      dotBallsPlayed: {
-        type: Number,
-        default: 0,
-      },
-
-      /* BOWLING */
-
-      runsConceded: {
-        type: Number,
-        default: 0,
-      },
-
-      wicketsTaken: {
-        type: Number,
-        default: 0,
-      },
-
-      ballsBowled: {
-        type: Number,
-        default: 0,
-      },
-
-      foursConceded: {
-        type: Number,
-        default: 0,
-      },
-
-      sixesConceded: {
-        type: Number,
-        default: 0,
-      },
-
-      dotBallsBowled: {
-        type: Number,
-        default: 0,
-      },
-
-      /* HIGHEST SCORE */
-
-      highestScore: {
-        runs: {
-          type: Number,
-          default: 0,
-        },
-
-        wickets: {
-          type: Number,
-          default: 0,
-        },
-
-        overs: {
-          type: Number,
-          default: 0,
-        },
-
-        matchId: {
-          type: mongoose.Schema.Types.ObjectId,
-
-          ref: "Match",
-
-          default: null,
-        },
-      },
-
-      /* LOWEST SCORE */
-
-      lowestScore: {
-        runs: {
-          type: Number,
-          default: null,
-        },
-
-        wickets: {
-          type: Number,
-          default: null,
-        },
-
-        overs: {
-          type: Number,
-          default: 0,
-        },
-
-        matchId: {
-          type: mongoose.Schema.Types.ObjectId,
-
-          ref: "Match",
-
-          default: null,
-        },
-      },
-
-      /* PARTNERSHIPS */
-
-      highestPartnership: {
-        runs: {
-          type: Number,
-          default: 0,
-        },
-
-        batters: [
-          {
-            type: String,
-          },
-        ],
-
-        wicket: {
-          type: Number,
-          default: 0,
-        },
-
-        matchId: {
-          type: mongoose.Schema.Types.ObjectId,
-
-          ref: "Match",
-
-          default: null,
-        },
-      },
+      type: TeamStatsSchema,
+      default: () => ({}),
     },
   },
   {
@@ -205,43 +235,18 @@ const TeamSeasonStatsSchema = new mongoose.Schema(
   },
 );
 
-/* =========================================
-   UNIQUE
-========================================= */
-
-TeamSeasonStatsSchema.index(
+SeasonTeamStatsSchema.index(
   {
     seasonId: 1,
-    name: 1,
+    teamId: 1,
   },
   {
     unique: true,
   },
 );
 
-/* =========================================
-   LEADERBOARDS
-========================================= */
+const SeasonTeamStats =
+  mongoose.models.SeasonTeamStats ||
+  mongoose.model("SeasonTeamStats", SeasonTeamStatsSchema);
 
-TeamSeasonStatsSchema.index({
-  seasonId: 1,
-  "stats.points": -1,
-});
-
-TeamSeasonStatsSchema.index({
-  seasonId: 1,
-  "stats.wins": -1,
-});
-
-TeamSeasonStatsSchema.index({
-  seasonId: 1,
-  "stats.runsScored": -1,
-});
-
-/* ========================================= */
-
-const TeamSeasonStats =
-  mongoose.models.TeamSeasonStats ||
-  mongoose.model("TeamSeasonStats", TeamSeasonStatsSchema);
-
-export default TeamSeasonStats;
+export default SeasonTeamStats;
