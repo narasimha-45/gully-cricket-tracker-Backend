@@ -1,5 +1,6 @@
 import PlayerProfile from "../../models/PlayerProfile.js";
 import TeamProfile from "../../models/TeamProfile.js";
+import OverallTeamStats from "../../models/OverallTeamStats.js";
 import Season from "../../models/season.model.js";
 import Match from "../../models/match.model.js";
 
@@ -30,6 +31,13 @@ export const globalSearch = async (q) => {
     .sort({ createdAt: -1 })
     .populate("players", "name")
     .lean();
+
+  const teamIds = teams.map(t => t._id);
+  const teamStats = await OverallTeamStats.find({ teamId: { $in: teamIds } }).lean();
+  const statsMap = {};
+  teamStats.forEach(ts => {
+    statsMap[ts.teamId.toString()] = ts;
+  });
 
   const uniqueTeamsMap = new Map();
   
@@ -62,7 +70,7 @@ export const globalSearch = async (q) => {
       uniqueTeamsMap.set(t.name, {
         id: t.name,
         name: t.name,
-        matches: t.stats?.played || 0,
+        matches: statsMap[t._id.toString()]?.played || 0,
         players: playersList,
       });
     }

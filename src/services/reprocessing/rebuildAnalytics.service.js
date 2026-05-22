@@ -1,6 +1,6 @@
 import Match from "../../models/match.model.js";
 
-import Season from "../../models/Season.js";
+import Season from "../../models/season.model.js";
 
 import PlayerProfile from "../../models/PlayerProfile.js";
 

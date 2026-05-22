@@ -1,9 +1,13 @@
-import Team from "../../models/team.model.js";
+import TeamProfile from "../../models/TeamProfile.js";
+
+import OverallTeamStats from "../../models/OverallTeamStats.js";
+
+import SeasonTeamStats from "../../models/SeasonTeamStats.js";  
 
 export const getTeamStandings = async (seasonId) => {
   if (seasonId && seasonId !== "all") {
     // Return season specific stats
-    const teams = await Team.find({ seasonId }).lean();
+    const teams = await TeamProfile.find({ seasonId }).lean();
     return teams.map(formatTeamRecord).sort(sortByPointsAndNrr);
   }
 

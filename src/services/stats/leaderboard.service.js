@@ -163,7 +163,7 @@ export const getSeasonFieldingLeaderboard = async (seasonId) => {
       "fielding.catches": -1,
     })
     .lean();
-
+  console.log("players",players)
   return players.map((player) => ({
     name: player.name,
 

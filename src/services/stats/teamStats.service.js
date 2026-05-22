@@ -1,5 +1,5 @@
-import Team from "../../models/team.model.js";
-import Player from "../../models/player.model.js";
+import TeamProfile from "../../models/TeamProfile.js";
+import Player from "../../models/PlayerProfile.js";
 import Season from "../../models/season.model.js";
 import Match from "../../models/match.model.js";
 
