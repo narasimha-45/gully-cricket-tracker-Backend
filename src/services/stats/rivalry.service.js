@@ -1,5 +1,5 @@
 import OverallPlayerStats from "../../models/OverallPlayerStats.js";
-import PlayerSeasonStats from "../../models/PlayerSeasonStats.js";
+import PlayerSeasonStats from "../../models/SeasonPlayerStats.js";
 import { getDerivedStats } from "./leaderboard.service.js";
 
 /* ======================================================

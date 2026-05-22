@@ -431,14 +431,14 @@ SeasonPlayerStatsSchema.index({
   "bowling.wickets": -1,
 });
 
-SeasonPlayerStats.index(
+SeasonPlayerStatsSchema.index(
   {
     seasonId: 1,
     "fielding.catches": -1,
   }
-);
+);  
 
-SeasonPlayerStats.index(
+SeasonPlayerStatsSchema.index(
   {
     seasonId: 1,
     "achievements.mom": -1,

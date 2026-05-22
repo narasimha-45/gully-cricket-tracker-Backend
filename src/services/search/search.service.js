@@ -1,5 +1,5 @@
 import PlayerProfile from "../../models/PlayerProfile.js";
-import Team from "../../models/team.model.js";
+import TeamProfile from "../../models/TeamProfile.js";
 import Season from "../../models/season.model.js";
 import Match from "../../models/match.model.js";
 
@@ -26,7 +26,7 @@ export const globalSearch = async (q) => {
   }));
 
   // 2. Search Teams
-  const teams = await Team.find({ name: regex })
+  const teams = await TeamProfile.find({ name: regex })
     .sort({ createdAt: -1 })
     .populate("players", "name")
     .lean();

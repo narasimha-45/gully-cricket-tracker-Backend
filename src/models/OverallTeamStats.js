@@ -1,5 +1,24 @@
 import mongoose from "mongoose";
 
+const MatchReferenceSchema = new mongoose.Schema(
+  {
+    count: {
+      type: Number,
+      default: 0,
+    },
+
+    recentMatches: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Match",
+      },
+    ],
+  },
+  {
+    _id: false,
+  },
+);
+
 const TeamStatsSchema = new mongoose.Schema(
   {
     played: {
@@ -99,15 +118,29 @@ const TeamStatsSchema = new mongoose.Schema(
 
     biggestWins: {
       byRuns: {
-        margin: 0,
+        margin: {
+          type: Number,
+          default: 0,
+        },
 
-        matchId: null,
+        matchId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Match",
+          default: null,
+        },
       },
 
       byWickets: {
-        margin: 0,
+        margin: {
+          type: Number,
+          default: 0,
+        },
 
-        matchId: null,
+        matchId: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Match",
+          default: null,
+        },
       },
     },
 
@@ -183,25 +216,6 @@ const TeamStatsSchema = new mongoose.Schema(
         ref: "Match",
       },
     },
-  },
-  {
-    _id: false,
-  },
-);
-
-const MatchReferenceSchema = new mongoose.Schema(
-  {
-    count: {
-      type: Number,
-      default: 0,
-    },
-
-    recentMatches: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Match",
-      },
-    ],
   },
   {
     _id: false,

@@ -27,7 +27,7 @@ const handleResponse = async (res, serviceCall) => {
 ====================================================== */
 
 export const submitMatch = async (req, res) => {
-  handleResponse(res, () => matchCommandService.createMatch(req.validatedBody));
+  handleResponse(res, () => matchCommandService.createMatch(req.body));
 }
 
 /* ======================================================
@@ -63,6 +63,5 @@ export const getSeasonMatches = async (req, res) => {
 ====================================================== */
 
 export const completeMatchHandler = async (req, res) => {
-  console.log("Complete Match Controller", req.body);
   handleResponse(res, () => completeMatch(req.body));
 };

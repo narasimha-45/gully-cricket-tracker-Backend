@@ -1,51 +1,15 @@
 import mongoose from "mongoose";
 
-const BallSchema = new mongoose.Schema(
-  {
-    over: Number,
-    ballInOver: Number,
-    actualBallNum: Number,
+/* ======================================================
+   WICKET
+====================================================== */
 
-    strikerId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "PlayerProfile",
-    },
-
-    nonStrikerId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "PlayerProfile",
-    },
-
-    bowlerId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "PlayerProfile",
-    },
-
-    runs: {
-      type: Number,
-      default: 0,
-    },
-
-    type: {
-      type: String,
-      enum: [
-        "RUN",
-        "WIDE",
-        "NO_BALL",
-        "BYE",
-        "LEG_BYE",
-        "WICKET",
-      ],
-    },
-
-    isWicket: {
-      type: Boolean,
-      default: false,
-    },
-
-    wicket: {
+const WicketSchema =
+  new mongoose.Schema(
+    {
       type: {
         type: String,
+
         enum: [
           "BOWLED",
           "CAUGHT",
@@ -57,178 +21,497 @@ const BallSchema = new mongoose.Schema(
       },
 
       outBatsmanId: {
-        type: mongoose.Schema.Types.ObjectId,
+        type:
+          mongoose.Schema.Types
+            .ObjectId,
+
         ref: "PlayerProfile",
       },
 
       helperId: {
-        type: mongoose.Schema.Types.ObjectId,
+        type:
+          mongoose.Schema.Types
+            .ObjectId,
+
         ref: "PlayerProfile",
       },
     },
+    {
+      _id: false,
+    }
+  );
 
-    timestamp: Number,
-  },
-  {
-    _id: false,
-  }
-);
+/* ======================================================
+   BALL
+====================================================== */
 
-const InningsSchema = new mongoose.Schema(
-  {
-    battingTeamId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "TeamProfile",
-    },
+const BallSchema =
+  new mongoose.Schema(
+    {
+      over: {
+        type: Number,
+      },
 
-    bowlingTeamId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "TeamProfile",
-    },
+      ballInOver: {
+        type: Number,
+      },
 
-    battingOrder: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
+      actualBallNum: {
+        type: Number,
+      },
+
+      strikerId: {
+        type:
+          mongoose.Schema.Types
+            .ObjectId,
+
         ref: "PlayerProfile",
       },
-    ],
 
-    totalRuns: Number,
-    wickets: Number,
-    balls: Number,
+      nonStrikerId: {
+        type:
+          mongoose.Schema.Types
+            .ObjectId,
 
-    battingStats: mongoose.Schema.Types.Mixed,
+        ref: "PlayerProfile",
+      },
 
-    bowlingStats: mongoose.Schema.Types.Mixed,
+      bowlerId: {
+        type:
+          mongoose.Schema.Types
+            .ObjectId,
 
-    extras: {
-      wides: Number,
-      noBalls: Number,
+        ref: "PlayerProfile",
+      },
+
+      runs: {
+        type: Number,
+
+        default: 0,
+      },
+
+      type: {
+        type: String,
+
+        enum: [
+          "RUN",
+          "WIDE",
+          "NO_BALL",
+          "BYE",
+          "LEG_BYE",
+          "WICKET",
+        ],
+      },
+
+      isWicket: {
+        type: Boolean,
+
+        default: false,
+      },
+
+      wicket: {
+        type: WicketSchema,
+
+        default: null,
+      },
+
+      timestamp: {
+        type: Number,
+      },
     },
+    {
+      _id: false,
+    }
+  );
 
-    dismissals: mongoose.Schema.Types.Mixed,
+/* ======================================================
+   ANALYTICS
+====================================================== */
 
-    ballByBall: [BallSchema],
-
-    analytics: {
+const AnalyticsSchema =
+  new mongoose.Schema(
+    {
       hasBallByBall: {
         type: Boolean,
+
         default: false,
       },
 
       hasRivalries: {
         type: Boolean,
+
         default: false,
       },
 
       hasPartnerships: {
         type: Boolean,
+
         default: false,
       },
-    },
 
-    completed: Boolean,
-  },
-  {
-    _id: false,
-  }
-);
+      processed: {
+        type: Boolean,
 
-const MatchSchema = new mongoose.Schema(
-  {
-    seasonId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Season",
-      required: true,
-    },
-
-    matchType: {
-      type: String,
-      enum: ["OVERS", "TEST", "CUSTOM"],
-      default: "OVERS",
-    },
-
-    teams: {
-      teamA: {
-        teamId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "TeamProfile",
-        },
-
-        players: [
-          {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "PlayerProfile",
-          },
-        ],
+        default: false,
       },
 
-      teamB: {
-        teamId: {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "TeamProfile",
-        },
+      processedAt: {
+        type: Date,
 
-        players: [
-          {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "PlayerProfile",
-          },
-        ],
+        default: null,
       },
     },
+    {
+      _id: false,
+    }
+  );
 
-    toss: {
-      winnerTeamId: {
-        type: mongoose.Schema.Types.ObjectId,
+/* ======================================================
+   INNINGS
+====================================================== */
+
+const InningsSchema =
+  new mongoose.Schema(
+    {
+      inningsNumber: {
+        type: Number,
+      },
+
+      battingTeamId: {
+        type:
+          mongoose.Schema.Types
+            .ObjectId,
+
         ref: "TeamProfile",
       },
 
-      decision: String,
-    },
+      bowlingTeamId: {
+        type:
+          mongoose.Schema.Types
+            .ObjectId,
 
-    rules: mongoose.Schema.Types.Mixed,
-
-    totalOvers: Number,
-
-    innings: [InningsSchema],
-
-    result: {
-      winnerTeamId: {
-        type: mongoose.Schema.Types.ObjectId,
         ref: "TeamProfile",
       },
 
-      type: String,
+      battingOrder: [
+        {
+          type:
+            mongoose.Schema.Types
+              .ObjectId,
 
-      margin: mongoose.Schema.Types.Mixed,
+          ref: "PlayerProfile",
+        },
+      ],
+
+      totalRuns: {
+        type: Number,
+
+        default: 0,
+      },
+
+      wickets: {
+        type: Number,
+
+        default: 0,
+      },
+
+      balls: {
+        type: Number,
+
+        default: 0,
+      },
+
+      battingStats: {
+        type:
+          mongoose.Schema.Types
+            .Mixed,
+
+        default: {},
+      },
+
+      bowlingStats: {
+        type:
+          mongoose.Schema.Types
+            .Mixed,
+
+        default: {},
+      },
+
+      extras: {
+        wides: {
+          type: Number,
+
+          default: 0,
+        },
+
+        noBalls: {
+          type: Number,
+
+          default: 0,
+        },
+      },
+
+      dismissals: {
+        type:
+          mongoose.Schema.Types
+            .Mixed,
+
+        default: {},
+      },
+
+      ballByBall: {
+        type: [BallSchema],
+
+        default: [],
+      },
+
+      analytics: {
+        type: AnalyticsSchema,
+
+        default: () => ({}),
+      },
+
+      completed: {
+        type: Boolean,
+
+        default: true,
+      },
+    },
+    {
+      _id: false,
+    }
+  );
+
+/* ======================================================
+   TEAM
+====================================================== */
+
+const TeamSchema =
+  new mongoose.Schema(
+    {
+      teamId: {
+        type:
+          mongoose.Schema.Types
+            .ObjectId,
+
+        ref: "TeamProfile",
+      },
+
+      players: [
+        {
+          type:
+            mongoose.Schema.Types
+              .ObjectId,
+
+          ref: "PlayerProfile",
+        },
+      ],
+    },
+    {
+      _id: false,
+    }
+  );
+
+/* ======================================================
+   TOSS
+====================================================== */
+
+const TossSchema =
+  new mongoose.Schema(
+    {
+      winnerTeamId: {
+        type:
+          mongoose.Schema.Types
+            .ObjectId,
+
+        ref: "TeamProfile",
+      },
+
+      decision: {
+        type: String,
+
+        enum: [
+          "BAT",
+          "BOWL",
+          "bat",
+          "bowl",
+          "Bat",
+          "Bowl"
+        ],
+      },
+    },
+    {
+      _id: false,
+    }
+  );
+
+/* ======================================================
+   RESULT
+====================================================== */
+
+const ResultSchema =
+  new mongoose.Schema(
+    {
+      winnerTeamId: {
+        type:
+          mongoose.Schema.Types
+            .ObjectId,
+
+        ref: "TeamProfile",
+      },
+
+      type: {
+        type: String,
+
+        enum: [
+          "RUNS",
+          "WICKETS",
+          "TIE",
+          "NO_RESULT",
+        ],
+      },
+
+      margin: {
+        type:
+          mongoose.Schema.Types
+            .Mixed,
+      },
 
       manOfTheMatchId: {
-        type: mongoose.Schema.Types.ObjectId,
+        type:
+          mongoose.Schema.Types
+            .ObjectId,
+
         ref: "PlayerProfile",
       },
     },
+    {
+      _id: false,
+    }
+  );
 
-    status: {
-      type: String,
-      enum: ["LIVE", "COMPLETED"],
-      default: "LIVE",
+/* ======================================================
+   MATCH
+====================================================== */
+
+const MatchSchema =
+  new mongoose.Schema(
+    {
+      seasonId: {
+        type:
+          mongoose.Schema.Types
+            .ObjectId,
+
+        ref: "Season",
+
+        required: true,
+      },
+
+      matchType: {
+        type: String,
+
+        enum: [
+          "OVERS",
+          "TEST",
+          "CUSTOM",
+        ],
+
+        default: "OVERS",
+      },
+
+      teams: {
+        teamA: {
+          type: TeamSchema,
+
+          required: true,
+        },
+
+        teamB: {
+          type: TeamSchema,
+
+          required: true,
+        },
+      },
+
+      toss: {
+        type: TossSchema,
+
+        default: null,
+      },
+
+      rules: {
+        type:
+          mongoose.Schema.Types
+            .Mixed,
+
+        default: {},
+      },
+
+      totalOvers: {
+        type: Number,
+      },
+
+      innings: {
+        type: [InningsSchema],
+
+        default: [],
+      },
+
+      result: {
+        type: ResultSchema,
+
+        default: null,
+      },
+
+      status: {
+        type: String,
+
+        enum: [
+          "LIVE",
+          "COMPLETED",
+        ],
+
+        default: "LIVE",
+      },
+
+      completedAt: {
+        type: Date,
+
+        default: null,
+      },
     },
+    {
+      timestamps: true,
+    }
+  );
 
-    completedAt: Date,
-  },
-  {
-    timestamps: true,
-  }
-);
+/* =====================================================
+   INDEXES
+===================================================== */
 
 MatchSchema.index({
   seasonId: 1,
+
   completedAt: -1,
 });
 
+MatchSchema.index({
+  status: 1,
+});
+
+MatchSchema.index({
+  "result.winnerTeamId": 1,
+});
+
+/* =====================================================
+   MODEL
+===================================================== */
+
 const Match =
   mongoose.models.Match ||
-  mongoose.model("Match", MatchSchema);
+  mongoose.model(
+    "Match",
+    MatchSchema
+  );
 
 export default Match;

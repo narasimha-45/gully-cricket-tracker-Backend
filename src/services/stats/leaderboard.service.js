@@ -1,5 +1,5 @@
 import { maxLength } from "zod";
-import PlayerSeasonStats from "../../models/PlayerSeasonStats.js";
+import PlayerSeasonStats from "../../models/SeasonPlayerStats.js";
 import OverallPlayerStats from "../../models/OverallPlayerStats.js";
 
 /* ======================================================

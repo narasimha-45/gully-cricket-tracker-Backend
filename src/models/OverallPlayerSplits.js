@@ -1,168 +1,93 @@
 import mongoose from "mongoose";
 
-/* =====================================================
-   REUSABLE SPLIT SCHEMA
-===================================================== */
-
 const SplitSchema = new mongoose.Schema(
   {
-    matches: {
-      type: Number,
-      default: 0,
-    },
-
-    innings: {
-      type: Number,
-      default: 0,
-    },
-
-    runs: {
-      type: Number,
-      default: 0,
-    },
-
-    balls: {
-      type: Number,
-      default: 0,
-    },
-
-    outs: {
-      type: Number,
-      default: 0,
-    },
-
-    wickets: {
-      type: Number,
-      default: 0,
-    },
-
-    fours: {
-      type: Number,
-      default: 0,
-    },
-
-    sixes: {
-      type: Number,
-      default: 0,
-    },
+    matches: { type: Number, default: 0 },
+    innings: { type: Number, default: 0 },
+    runs: { type: Number, default: 0 },
+    balls: { type: Number, default: 0 },
+    outs: { type: Number, default: 0 },
+    wickets: { type: Number, default: 0 },
+    fours: { type: Number, default: 0 },
+    sixes: { type: Number, default: 0 },
   },
-  {
-    _id: false,
-  }
+  { _id: false },
 );
 
-/* =====================================================
-   OVERALL PLAYER SPLITS
-===================================================== */
+const BattingInningsSchema = new mongoose.Schema(
+  {
+    matchId: { type: mongoose.Schema.Types.ObjectId, ref: "Match" },
+    inningsNumber: Number,
+    playedFor: { type: mongoose.Schema.Types.ObjectId, ref: "TeamProfile" },
+    opponent: { type: mongoose.Schema.Types.ObjectId, ref: "TeamProfile" },
+    battingPosition: Number,
+    runs: Number,
+    balls: Number,
+    fours: Number,
+    sixes: Number,
+    out: Boolean,
+    won: Boolean,
+    date: Date,
+  },
+  { _id: false },
+);
 
-const OverallPlayerSplitsSchema =
-  new mongoose.Schema(
-    {
-      playerId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "PlayerProfile",
-        required: true,
-        unique: true,
-      },
+const BowlingInningsSchema = new mongoose.Schema(
+  {
+    matchId: { type: mongoose.Schema.Types.ObjectId, ref: "Match" },
+    inningsNumber: Number,
+    playedFor: { type: mongoose.Schema.Types.ObjectId, ref: "TeamProfile" },
+    opponent: { type: mongoose.Schema.Types.ObjectId, ref: "TeamProfile" },
+    wickets: Number,
+    balls: Number,
+    runs: Number,
+    won: Boolean,
+    date: Date,
+  },
+  { _id: false },
+);
 
-      /* =================================================
-         POSITION SPLITS
-      ================================================= */
+const BattingSplitsSchema = new mongoose.Schema(
+  {
+    byPosition: { type: mongoose.Schema.Types.Mixed, default: {} },
+    byOpponent: { type: mongoose.Schema.Types.Mixed, default: {} },
+    byTeam: { type: mongoose.Schema.Types.Mixed, default: {} },
+    byMatchResult: { type: mongoose.Schema.Types.Mixed, default: {} },
+  },
+  { _id: false },
+);
 
-      byPosition: {
-        type: Map,
+const BowlingSplitsSchema = new mongoose.Schema(
+  {
+    byOpponent: { type: mongoose.Schema.Types.Mixed, default: {} },
+    byTeam: { type: mongoose.Schema.Types.Mixed, default: {} },
+    byMatchResult: { type: mongoose.Schema.Types.Mixed, default: {} },
+  },
+  { _id: false },
+);
 
-        of: SplitSchema,
-
-        default: {},
-      },
-
-      /* =================================================
-         OPPONENT SPLITS
-      ================================================= */
-
-      byOpponent: {
-        type: Map,
-
-        of: SplitSchema,
-
-        default: {},
-      },
-
-      /* =================================================
-         TEAM SPLITS
-      ================================================= */
-
-      byTeam: {
-        type: Map,
-
-        of: SplitSchema,
-
-        default: {},
-      },
-
-      /* =================================================
-         INNINGS CONTEXT
-      =================================================
-
-         Keys:
-         "FIRST"
-         "SECOND"
-      ================================================= */
-
-      battingInnings: {
-        type: Map,
-
-        of: SplitSchema,
-
-        default: {},
-      },
-
-      bowlingInnings: {
-        type: Map,
-
-        of: SplitSchema,
-
-        default: {},
-      },
-
-      /* =================================================
-         MATCH RESULT CONTEXT
-      =================================================
-
-         Keys:
-         "WON"
-         "LOST"
-         "TIED"
-      ================================================= */
-
-      byMatchResult: {
-        type: Map,
-
-        of: SplitSchema,
-
-        default: {},
-      },
+const OverallPlayerSplitsSchema = new mongoose.Schema(
+  {
+    playerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "PlayerProfile",
+      required: true,
+      unique: true,
     },
-    {
-      timestamps: true,
-    }
-  );
 
-/* =====================================================
-   INDEXES
-===================================================== */
+    batting: { type: BattingSplitsSchema, default: () => ({}) },
+    bowling: { type: BowlingSplitsSchema, default: () => ({}) },
 
-OverallPlayerSplitsSchema.index({
-  playerId: 1,
-});
+    battingInnings: { type: [BattingInningsSchema], default: [] },
+    bowlingInnings: { type: [BowlingInningsSchema], default: [] },
+  },
+  { timestamps: true },
+);
+
+OverallPlayerSplitsSchema.index({ playerId: 1 });
 
 const OverallPlayerSplits =
-  mongoose.models
-    .OverallPlayerSplits ||
-  mongoose.model(
-    "OverallPlayerSplits",
-    OverallPlayerSplitsSchema
-  );
+  mongoose.models.OverallPlayerSplits ||
+  mongoose.model("OverallPlayerSplits", OverallPlayerSplitsSchema);
 
 export default OverallPlayerSplits;

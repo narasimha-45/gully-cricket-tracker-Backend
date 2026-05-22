@@ -1,114 +1,173 @@
-import PlayerRivalryStats from "../../models/PlayerRivalryStats.js";
+import {
+  getRivalryAccumulator,
+} from "./shared/accumulatorHelpers.js";
 
-/* ======================================================
-   HELPERS
-====================================================== */
-
-const normalize = (v) => v?.trim()?.toLowerCase?.() || "";
+import {
+  dismissalKey,
+} from "./shared/helpers.js";
 
 /* ======================================================
    PROCESS RIVALRIES
 ====================================================== */
 
-export const processRivalries = async (match) => {
-  const bulkOps = [];
+export const processRivalries =
+  async (
+    match,
+    accumulators
+  ) => {
+    const seasonId =
+      match.seasonId;
 
-  /* =========================================
-     ONLY NEW MATCHES WITH BALL DATA
-  ========================================= */
-  const inningsToProcess = (match.innings || []).filter(
-    (inn) =>
-      !inn.isSuperOver &&
-      Array.isArray(inn.ballByBall) &&
-      inn.ballByBall.length > 0,
-  );
+    /* =========================================
+       INNINGS LOOP
+    ========================================= */
 
-  for (const innings of inningsToProcess) {
-    for (const ball of innings.ballByBall) {
-      const batter = normalize(ball.striker);
+    for (const innings of match.innings) {
+      for (const delivery of
+        innings.ballByBall ||
+        []) {
+        const batterId =
+          delivery.strikerId;
 
-      const bowler = normalize(ball.bowler);
+        const bowlerId =
+          delivery.bowlerId;
 
-      if (!batter || !bowler) {
-        continue;
+        if (
+          !batterId ||
+          !bowlerId
+        ) {
+          continue;
+        }
+
+        /* =========================================
+           GET ACCUMULATORS
+        ========================================= */
+
+        const overallRivalry =
+          getRivalryAccumulator(
+            {
+              map:
+                accumulators.overallPlayerRivalries,
+
+              key:
+                `${batterId}_${bowlerId}`,
+
+              payload: {
+                batterId,
+
+                bowlerId,
+              },
+            }
+          );
+
+        const seasonRivalry =
+          getRivalryAccumulator(
+            {
+              map:
+                accumulators.seasonPlayerRivalries,
+
+              key:
+                `${seasonId}_${batterId}_${bowlerId}`,
+
+              payload: {
+                seasonId,
+
+                batterId,
+
+                bowlerId,
+              },
+            }
+          );
+
+        const rivalries = [
+          overallRivalry,
+          seasonRivalry,
+        ];
+
+        /* =========================================
+           DELIVERY METRICS
+        ========================================= */
+
+        const runs =
+          delivery.runs || 0;
+
+        const type =
+          delivery.type;
+
+        const isLegalBall =
+          type !== "WIDE" &&
+          type !== "NO_BALL";
+
+        for (const rivalry of rivalries) {
+          rivalry.runs += runs;
+
+          if (
+            runs === 4
+          ) {
+            rivalry.fours += 1;
+          }
+
+          if (
+            runs === 6
+          ) {
+            rivalry.sixes += 1;
+          }
+
+          if (
+            isLegalBall
+          ) {
+            rivalry.balls += 1;
+          }
+        }
+
+        /* =========================================
+           WICKET
+        ========================================= */
+
+        if (
+          delivery.isWicket &&
+          delivery.wicket
+        ) {
+          const outBatsmanId =
+            delivery.wicket
+              .outBatsmanId;
+
+          /*
+           * Rivalry wicket only valid
+           * if striker got dismissed
+           */
+
+          if (
+            String(
+              outBatsmanId
+            ) ===
+            String(
+              batterId
+            )
+          ) {
+            for (const rivalry of rivalries) {
+              rivalry.wickets +=
+                1;
+
+              const key =
+                dismissalKey(
+                  delivery.wicket
+                    .type
+                );
+
+              if (
+                key &&
+                rivalry.dismissals[
+                  key
+                ] !== undefined
+              ) {
+                rivalry.dismissals[
+                  key
+                ] += 1;
+              }
+            }
+          }
+        }
       }
-      const runs = ball.runs || 0;
-
-      const isLegal = ball.type === "RUN";
-
-      const isDot = isLegal && runs === 0;
-
-      const isFour = runs === 4;
-
-      const isSix = runs === 6;
-
-      const isDismissal = !!ball.isWicket;
-
-      /* =====================================
-         OVERALL
-      ===================================== */
-
-      bulkOps.push({
-        updateOne: {
-          filter: { batter, bowler, seasonId: null },
-
-          update: {
-            $inc: {
-              "stats.balls": isLegal ? 1 : 0,
-
-              "stats.runs": runs,
-
-              "stats.dots": isDot ? 1 : 0,
-
-              "stats.fours": isFour ? 1 : 0,
-
-              "stats.sixes": isSix ? 1 : 0,
-
-              "stats.dismissals": isDismissal ? 1 : 0,
-            },
-          },
-
-          upsert: true,
-        },
-      });
-
-      /* =====================================
-         SEASON
-      ===================================== */
-
-      bulkOps.push({
-        updateOne: {
-          filter: {
-            batter,
-            bowler,
-            seasonId: match.seasonId,
-          },
-
-          update: {
-            $inc: {
-              "stats.balls": isLegal ? 1 : 0,
-
-              "stats.runs": runs,
-
-              "stats.dots": isDot ? 1 : 0,
-
-              "stats.fours": isFour ? 1 : 0,
-
-              "stats.sixes": isSix ? 1 : 0,
-
-              "stats.dismissals": isDismissal ? 1 : 0,
-            },
-          },
-
-          upsert: true,
-        },
-      });
     }
-  }
-
-  if (bulkOps.length > 0) {
-    await PlayerRivalryStats.bulkWrite(bulkOps);
-  }
-
-  return true;
-};
+  };

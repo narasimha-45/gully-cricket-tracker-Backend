@@ -24,7 +24,20 @@ const SeasonPartnershipAggregateSchema = new mongoose.Schema(
     runs: Number,
     balls: Number,
 
-    highest: Number,
+    highest: {
+      runs: {
+        type: Number,
+        default: 0,
+      },
+
+      matchId: {
+        type: mongoose.Schema.Types.ObjectId,
+
+        ref: "Match",
+
+        default: null,
+      },
+    },
 
     fiftyPlus: Number,
     hundredPlus: Number,

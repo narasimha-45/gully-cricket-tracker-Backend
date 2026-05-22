@@ -4,8 +4,8 @@ import Season
 import Match
   from "../../models/match.model.js";
 
-import Team
-  from "../../models/team.model.js";
+import SeasonTeamStats
+  from "../../models/SeasonTeamStats.js";
 
 /* ======================================================
    ALL SEASONS
@@ -41,7 +41,7 @@ export const getSeasonDetails =
     }
 
     const teams =
-      await Team.find({
+      await SeasonTeamStats.find({
         seasonId,
       })
         .sort({
@@ -56,7 +56,7 @@ export const getSeasonDetails =
         .sort({
           createdAt: -1,
         })
-        .limit(5)
+        .limit(10)
         .lean();
 
     return {
