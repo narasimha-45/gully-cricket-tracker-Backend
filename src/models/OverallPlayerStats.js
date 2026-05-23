@@ -4,16 +4,22 @@ const RivalPlayerSchema = new mongoose.Schema(
   {
     playerId: {
       type: mongoose.Schema.Types.ObjectId,
-
       ref: "PlayerProfile",
-
       required: true,
     },
 
     count: {
       type: Number,
-
       default: 0,
+    },
+
+    dismissalBreakdown: {
+      bowled: { type: Number, default: 0 },
+      caught: { type: Number, default: 0 },
+      lbw: { type: Number, default: 0 },
+      runOut: { type: Number, default: 0 },
+      stumped: { type: Number, default: 0 },
+      hitWicket: { type: Number, default: 0 },
     },
   },
   {

@@ -1,75 +1,218 @@
-import TeamProfile from "../../models/TeamProfile.js";
+import mongoose from "mongoose";
 
 import OverallTeamStats from "../../models/OverallTeamStats.js";
+import SeasonTeamStats from "../../models/SeasonTeamStats.js";
 
-import SeasonTeamStats from "../../models/SeasonTeamStats.js";  
+/* ======================================================
+   HELPERS
+====================================================== */
 
-export const getTeamStandings = async (seasonId) => {
-  if (seasonId && seasonId !== "all") {
-    // Return season specific stats
-    const teams = await TeamProfile.find({ seasonId }).lean();
-    return teams.map(formatTeamRecord).sort(sortByPointsAndNrr);
+const calculateNRR = ({
+  runsScored = 0,
+  ballsFaced = 0,
+  runsConceded = 0,
+  ballsBowled = 0,
+}) => {
+  if (ballsFaced <= 0 || ballsBowled <= 0) {
+    return 0;
   }
 
-  // Return OVERALL aggregated stats
-  const aggregateTeams = await Team.aggregate([
-    {
-      $group: {
-        _id: "$name",
-        name: { $first: "$name" },
-        played: { $sum: "$stats.played" },
-        wins: { $sum: "$stats.wins" },
-        losses: { $sum: "$stats.losses" },
-        ties: { $sum: "$stats.ties" },
-        noResults: { $sum: "$stats.noResults" },
-        points: { $sum: "$stats.points" },
-        runsScored: { $sum: "$stats.runsScored" },
-        ballsFaced: { $sum: "$stats.ballsFaced" },
-        runsConceded: { $sum: "$stats.runsConceded" },
-        ballsBowled: { $sum: "$stats.ballsBowled" },
-        
-        // We will just take the absolute max/min across their documents
-        highestSuccessfulChaseRuns: { $max: "$stats.highestSuccessfulChase.runs" },
-        lowestTotalDefendedRuns: { $min: { $cond: [ { $gt: ["$stats.lowestTotalDefended.runs", null] }, "$stats.lowestTotalDefended.runs", 9999 ] } }
-      }
-    }
-  ]);
+  const scoredRate = runsScored / (ballsFaced / 6);
 
-  return aggregateTeams.map(team => {
-    // Format derived NRR
-    const nrr = team.ballsFaced > 0 && team.ballsBowled > 0
-      ? (team.runsScored / (team.ballsFaced / 6) - team.runsConceded / (team.ballsBowled / 6)).toFixed(2)
-      : 0;
+  const concededRate = runsConceded / (ballsBowled / 6);
 
-    return {
-      name: team.name,
-      stats: {
-        played: team.played,
-        wins: team.wins,
-        losses: team.losses,
-        ties: team.ties,
-        noResults: team.noResults,
-        points: team.points,
-        highestSuccessfulChase: { runs: team.highestSuccessfulChaseRuns },
-        lowestTotalDefended: { runs: team.lowestTotalDefendedRuns === 9999 ? null : team.lowestTotalDefendedRuns },
-      },
-      derived: {
-        netRunRate: nrr,
-      }
-    };
-  }).sort(sortByPointsAndNrr);
-};
-
-const formatTeamRecord = (team) => {
-  const nrr = team.stats.ballsFaced > 0 && team.stats.ballsBowled > 0
-    ? (team.stats.runsScored / (team.stats.ballsFaced / 6) - team.stats.runsConceded / (team.stats.ballsBowled / 6)).toFixed(2)
-    : 0;
-  return { ...team, derived: { netRunRate: nrr } };
+  return Number((scoredRate - concededRate).toFixed(2));
 };
 
 const sortByPointsAndNrr = (a, b) => {
   if (b.stats.points !== a.stats.points) {
     return b.stats.points - a.stats.points;
   }
+
   return b.derived.netRunRate - a.derived.netRunRate;
+};
+
+const formatTeamRecord = (team) => {
+  return {
+    teamId: team.teamId || team._id,
+
+    name: team.name,
+
+    stats: {
+      played: team.stats?.played || 0,
+
+      wins: team.stats?.wins || 0,
+
+      losses: team.stats?.losses || 0,
+
+      ties: team.stats?.ties || 0,
+
+      noResults: team.stats?.noResults || 0,
+
+      points: team.stats?.points || 0,
+
+      highestSuccessfulChase: team.stats?.highestSuccessfulChase || null,
+
+      lowestTotalDefended: team.stats?.lowestTotalDefended || null,
+    },
+
+    derived: {
+      netRunRate: calculateNRR({
+        runsScored: team.stats?.runsScored || 0,
+
+        ballsFaced: team.stats?.ballsFaced || 0,
+
+        runsConceded: team.stats?.runsConceded || 0,
+
+        ballsBowled: team.stats?.ballsBowled || 0,
+      }),
+    },
+  };
+};
+
+/* ======================================================
+   TEAM STANDINGS
+====================================================== */
+
+export const getTeamStandings = async (seasonId) => {
+  /* ======================================
+       SEASON STANDINGS
+    ====================================== */
+
+  if (seasonId && seasonId !== "all") {
+    const teams = await SeasonTeamStats.find({
+      seasonId: new mongoose.Types.ObjectId(seasonId),
+    }).lean();
+
+    return teams.map(formatTeamRecord).sort(sortByPointsAndNrr);
+  }
+
+  /* ======================================
+       OVERALL STANDINGS
+    ====================================== */
+
+  const aggregateTeams = await OverallTeamStats.aggregate([
+    {
+      $group: {
+        _id: "$teamId",
+
+        teamId: {
+          $first: "$teamId",
+        },
+
+        played: {
+          $sum: "$stats.played",
+        },
+
+        wins: {
+          $sum: "$stats.wins",
+        },
+
+        losses: {
+          $sum: "$stats.losses",
+        },
+
+        ties: {
+          $sum: "$stats.ties",
+        },
+
+        noResults: {
+          $sum: "$stats.noResults",
+        },
+
+        points: {
+          $sum: "$stats.points",
+        },
+
+        runsScored: {
+          $sum: "$stats.runsScored",
+        },
+
+        ballsFaced: {
+          $sum: "$stats.ballsFaced",
+        },
+
+        runsConceded: {
+          $sum: "$stats.runsConceded",
+        },
+
+        ballsBowled: {
+          $sum: "$stats.ballsBowled",
+        },
+
+        highestSuccessfulChase: {
+          $max: "$stats.highestSuccessfulChase",
+        },
+
+        lowestTotalDefended: {
+          $min: "$stats.lowestTotalDefended",
+        },
+      },
+    },
+
+    /* =====================================
+       TEAM LOOKUP
+    ====================================== */
+
+    {
+      $lookup: {
+        from: "teamprofiles",
+
+        localField: "teamId",
+
+        foreignField: "_id",
+
+        as: "team",
+      },
+    },
+
+    {
+      $unwind: {
+        path: "$team",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
+
+    {
+      $addFields: {
+        name: "$team.name",
+      },
+    },
+  ]);
+
+  const formatted = aggregateTeams.map((team) =>
+    formatTeamRecord({
+      teamId: team.teamId,
+
+      name: team.name,
+
+      stats: {
+        played: team.played,
+
+        wins: team.wins,
+
+        losses: team.losses,
+
+        ties: team.ties,
+
+        noResults: team.noResults,
+
+        points: team.points,
+
+        runsScored: team.runsScored,
+
+        ballsFaced: team.ballsFaced,
+
+        runsConceded: team.runsConceded,
+
+        ballsBowled: team.ballsBowled,
+
+        highestSuccessfulChase: team.highestSuccessfulChase,
+
+        lowestTotalDefended: team.lowestTotalDefended,
+      },
+    }),
+  );
+
+  return formatted.sort(sortByPointsAndNrr);
 };

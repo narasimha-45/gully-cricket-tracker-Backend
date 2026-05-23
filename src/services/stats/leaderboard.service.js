@@ -51,7 +51,7 @@ export const getSeasonBattingLeaderboard = async (seasonId) => {
       "batting.runs": -1,
     })
     .lean();
-
+  console.log("Season Batting LEaderboard", players);
   return players.map((player) => ({
     name: player.name,
 

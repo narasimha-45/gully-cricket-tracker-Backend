@@ -145,6 +145,7 @@ export const processPlayerStats = async (match, accumulators) => {
             player.batting.mostDismissedBy = updateTopList(
               player.batting.mostDismissedBy,
               dismissal.bowlerId,
+              dismissalKey(dismissal.type), // ← pass the type
             );
           }
         } else {
@@ -397,36 +398,18 @@ export const processPlayerStats = async (match, accumulators) => {
         ========================================= */
 
       if (bowlerId && batterId) {
-        const overallBowler = getPlayerStatsAccumulator({
-          map: accumulators.overallPlayerStats,
-
-          key: String(bowlerId),
-
-          payload: {
-            playerId: bowlerId,
-          },
-        });
-
-        const seasonBowler = getPlayerStatsAccumulator({
-          map: accumulators.seasonPlayerStats,
-
-          key: `${seasonId}_${bowlerId}`,
-
-          payload: {
-            seasonId,
-
-            playerId: bowlerId,
-          },
-        });
+        const dtype = dismissalKey(delivery.wicket.type);
 
         overallBowler.bowling.mostDismissedBatters = updateTopList(
           overallBowler.bowling.mostDismissedBatters,
           batterId,
+          dtype, // ← pass dismissal type
         );
 
         seasonBowler.bowling.mostDismissedBatters = updateTopList(
           seasonBowler.bowling.mostDismissedBatters,
           batterId,
+          dtype, // ← pass dismissal type
         );
       }
 

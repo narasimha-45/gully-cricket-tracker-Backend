@@ -8,6 +8,24 @@ import { defaultPlayerSplit } from "./shared/defaults.js";
    UPDATE SPLIT
 ====================================================== */
 
+const updateBestBowling = (split, wickets, runs) => {
+  const current = split.bestBowling || {
+    wickets: 0,
+    runs: 9999,
+  };
+
+  const better =
+    wickets > current.wickets ||
+    (wickets === current.wickets && runs < current.runs);
+
+  if (better) {
+    split.bestBowling = {
+      wickets,
+      runs,
+    };
+  }
+};
+
 const updateSplit = ({
   split,
   runs = 0,
@@ -46,11 +64,13 @@ const ensurePlayerStructure = (player) => {
   player.batting.byOpponent ??= {};
   player.batting.byTeam ??= {};
   player.batting.byMatchResult ??= {};
+  player.batting.byInnings ??= {};
 
   player.bowling ??= {};
   player.bowling.byOpponent ??= {};
   player.bowling.byTeam ??= {};
   player.bowling.byMatchResult ??= {};
+  player.bowling.byInnings ??= {};
 
   if (!Array.isArray(player.battingInnings)) {
     player.battingInnings = [];
@@ -73,11 +93,13 @@ const basePayload = ({ seasonId, playerId }) => ({
     byOpponent: {},
     byTeam: {},
     byMatchResult: {},
+    byInnings: {},
   },
   bowling: {
     byOpponent: {},
     byTeam: {},
     byMatchResult: {},
+    byInnings: {},
   },
   battingInnings: [],
   bowlingInnings: [],
@@ -132,6 +154,7 @@ export const processPlayerSplits = async (match, accumulators) => {
       const opponentKey = String(bowlingTeamId);
       const teamKey = String(battingTeamId);
       const resultKey = battingWon ? "wins" : "losses";
+      const inningsKey = inningsNumber === 1 ? "FIRST" : "SECOND";
 
       for (const [map, key, withSeason] of [
         [accumulators.overallPlayerSplits, String(playerId), false],
@@ -200,6 +223,20 @@ export const processPlayerSplits = async (match, accumulators) => {
           out,
         });
 
+        updateSplit({
+          split: ensureSplit(
+            player.batting.byInnings,
+            inningsKey,
+            defaultPlayerSplit,
+          ),
+
+          runs,
+          balls,
+          fours,
+          sixes,
+          out,
+        });
+
         player.battingInnings.push({
           matchId: match._id,
           inningsNumber,
@@ -223,6 +260,10 @@ export const processPlayerSplits = async (match, accumulators) => {
          BOWLING SPLITS
       ========================================= */
 
+    /* =========================================
+   BOWLING SPLITS
+========================================= */
+
     for (const [rawPlayerId, bowling] of Object.entries(
       innings.bowlingStats || {},
     )) {
@@ -237,64 +278,123 @@ export const processPlayerSplits = async (match, accumulators) => {
       const opponentKey = String(battingTeamId);
       const teamKey = String(bowlingTeamId);
       const resultKey = battingWon ? "losses" : "wins";
+      const inningsKey = inningsNumber === 1 ? "FIRST" : "SECOND";
 
       for (const [map, key, withSeason] of [
         [accumulators.overallPlayerSplits, playerId, false],
+
         [accumulators.seasonPlayerSplits, `${seasonId}_${playerId}`, true],
       ]) {
         const player = getPlayerSplitsAccumulator({
           map,
           key,
+
           payload: basePayload({
             seasonId: withSeason ? seasonId : undefined,
+
             playerId,
           }),
         });
 
         ensurePlayerStructure(player);
 
+        /* ======================================
+       BY OPPONENT
+    ====================================== */
+
+        const opp = ensureSplit(
+          player.bowling.byOpponent,
+          opponentKey,
+          defaultPlayerSplit,
+        );
+
         updateSplit({
-          split: ensureSplit(
-            player.bowling.byOpponent,
-            opponentKey,
-            defaultPlayerSplit,
-          ),
+          split: opp,
           wickets,
           balls,
           runs,
         });
 
+        updateBestBowling(opp, wickets, runs);
+
+        /* ======================================
+       BY TEAM
+    ====================================== */
+
+        const team = ensureSplit(
+          player.bowling.byTeam,
+          teamKey,
+          defaultPlayerSplit,
+        );
+
         updateSplit({
-          split: ensureSplit(
-            player.bowling.byTeam,
-            teamKey,
-            defaultPlayerSplit,
-          ),
+          split: team,
           wickets,
           balls,
           runs,
         });
 
+        updateBestBowling(team, wickets, runs);
+
+        /* ======================================
+       BY RESULT
+    ====================================== */
+
+        const res = ensureSplit(
+          player.bowling.byMatchResult,
+          resultKey,
+          defaultPlayerSplit,
+        );
+
         updateSplit({
-          split: ensureSplit(
-            player.bowling.byMatchResult,
-            resultKey,
-            defaultPlayerSplit,
-          ),
+          split: res,
           wickets,
           balls,
           runs,
         });
+
+        updateBestBowling(res, wickets, runs);
+
+        /* ======================================
+       BY INNINGS
+    ====================================== */
+
+        const inns = ensureSplit(
+          player.bowling.byInnings,
+          inningsKey,
+          defaultPlayerSplit,
+        );
+
+        updateSplit({
+          split: inns,
+          wickets,
+          balls,
+          runs,
+        });
+
+        updateBestBowling(inns, wickets, runs);
+
+        /* ======================================
+       EVENT STORAGE
+    ====================================== */
 
         player.bowlingInnings.push({
           matchId: match._id,
+
           inningsNumber,
+
           playedFor: bowlingTeamId,
+
           opponent: battingTeamId,
+
           wickets,
+
           balls,
+
           runs,
+
           won: !battingWon,
+
           date: match.completedAt,
         });
 

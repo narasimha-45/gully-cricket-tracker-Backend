@@ -101,6 +101,15 @@ export const getSeasonTeams = async (seasonId) => {
   }));
 };
 
+export const getAllTeams = async () => {
+  const profiles = await TeamProfile.find({}).lean();
+  
+  return profiles.map(p => ({
+    _id: p._id,
+    name: p.name,
+  }));
+}
+
 /* ======================================================
    POINTS TABLE
 ====================================================== */

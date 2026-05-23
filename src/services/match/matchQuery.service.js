@@ -8,11 +8,17 @@ import { denormalizeMatch } from "./denormalizeMatch.js";
 export const getMatchScorecard = async (matchId) => {
   const match = await Match.findById(matchId).lean();
 
+  console.log("Normal Match :", match.innings[0].battingStats);
+  
   if (!match) {
     throw new Error("Match not found");
   }
 
   const denormMatch = await denormalizeMatch(match);
+
+  console.log("Denormalise match:", denormMatch.innings[0].battingStats);
+
+  // console.log("Denormalized Match:", denormMatch.innings[0].battingStats);
 
   /* =========================================
        VIEW MODEL
@@ -23,8 +29,6 @@ export const getMatchScorecard = async (matchId) => {
       id: denormMatch._id,
 
       seasonId: denormMatch.seasonId,
-
-      venue: denormMatch.venue,
 
       date: denormMatch.createdAt,
 

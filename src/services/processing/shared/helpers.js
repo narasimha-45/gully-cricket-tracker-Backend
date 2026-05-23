@@ -71,25 +71,27 @@ export const pushRecentMatch = (bucket, matchId, limit = 10000) => {
    UPDATE TOP LIST
 ====================================================== */
 
-export const updateTopList = (list, playerId) => {
-  if (!Array.isArray(list)) list = []; 
-  const existing = list.find(
-    (entry) => String(entry.playerId) === String(playerId),
-  );
+export function updateTopList(list, playerId, dismissalType = null) {
+  const existing = list.find((x) => String(x.playerId) === String(playerId));
 
   if (existing) {
     existing.count += 1;
+    if (dismissalType) {
+      if (!existing.dismissalBreakdown) existing.dismissalBreakdown = {};
+      existing.dismissalBreakdown[dismissalType] =
+        (existing.dismissalBreakdown[dismissalType] || 0) + 1;
+    }
   } else {
-    list.push({
-      playerId,
-      count: 1,
-    });
+    const entry = { playerId, count: 1, dismissalBreakdown: {} };
+    if (dismissalType) {
+      entry.dismissalBreakdown[dismissalType] = 1;
+    }
+    list.push(entry);
   }
 
   list.sort((a, b) => b.count - a.count);
-
-  return list.slice(0, 10);
-};
+  return list.slice(0, 1000);
+}
 
 /* ======================================================
    ENSURE SPLIT
@@ -97,7 +99,7 @@ export const updateTopList = (list, playerId) => {
 
 export const ensureSplit = (target, key, defaultPlayerSplit) => {
   if (!target[key]) {
-    target[key] = defaultPlayerSplit();
+    target[key] = defaultPlayerSplit;
   }
 
   return target[key];

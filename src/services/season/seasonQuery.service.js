@@ -13,7 +13,7 @@ export const getAllSeasons = async () => {
       createdAt: -1,
     })
     .lean();
-
+  console.log("Fetched seasons:", seasons);
   return seasons;
 };
 

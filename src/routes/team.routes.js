@@ -6,6 +6,7 @@ import {
   getSeasonTeams,
   getPointsTable,
   getTeamStandings,
+  getAllTeams,
 } from "../controllers/team.controller.js";
 
 const router = express.Router();
@@ -48,6 +49,12 @@ router.get(
   "/season/:seasonId",
   getSeasonTeams
 );
+
+router.get(
+  "/",
+  getAllTeams
+);
+
 
 /**
  * @swagger
