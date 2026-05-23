@@ -17,6 +17,7 @@ import {
   getBatterVsBowler,
   getTeamHeadToHead,
   getPlayerHeadToHead,
+  getPlayerSplits,
 } from "../controllers/stats.controller.js";
 
 const router = express.Router();
@@ -81,6 +82,28 @@ router.get("/search/teams", searchTeams);
  *         description: Player profile and career stats
  */
 router.get("/player/:name", getPlayerProfile);
+
+/**
+ * @swagger
+ * /api/stats/player/{name}/splits:
+ *   get:
+ *     summary: Get deep analytics splits for a player
+ *     tags: [Stats]
+ *     parameters:
+ *       - in: path
+ *         name: name
+ *         required: true
+ *         schema:
+ *           type: string
+ *       - in: query
+ *         name: seasonId
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Player splits data
+ */
+router.get("/player/:name/splits", getPlayerSplits);
 
 /* ======================================================
    TEAM PROFILE

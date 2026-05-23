@@ -1,25 +1,59 @@
-/* ======================================================
-   CREATE ACCUMULATORS
-====================================================== */
+export const createAccumulators =
+  () => ({
+    /* =========================================
+       TEAM STATS
+    ========================================= */
 
-export const createAccumulators = () => {
-  return {
-    /* PLAYERS */
+    overallTeamStats:
+      new Map(),
 
-    overallStats: new Map(),
+    seasonTeamStats:
+      new Map(),
 
-    seasonStats: new Map(),
+    /* =========================================
+       PLAYER STATS
+    ========================================= */
 
-    playerProfiles: new Map(),
+    overallPlayerStats:
+      new Map(),
 
-    matchPerformances: new Map(),
+    seasonPlayerStats:
+      new Map(),
 
-    /* TEAMS */
+    /* =========================================
+       PLAYER SPLITS
+    ========================================= */
 
-    teamProfiles: new Map(),
+    overallPlayerSplits:
+      new Map(),
 
-    overallTeamStats: new Map(),
+    seasonPlayerSplits:
+      new Map(),
 
-    seasonTeamStats: new Map(),
-  };
-};
+    /* =========================================
+       RIVALRIES
+    ========================================= */
+
+    overallPlayerRivalries:
+      new Map(),
+
+    seasonPlayerRivalries:
+      new Map(),
+
+    /* =========================================
+       PARTNERSHIPS
+    ========================================= */
+
+    overallPartnerships:
+      new Map(),
+
+    seasonPartnerships:
+      new Map(),
+
+    /* =========================================
+       PARTNERSHIP RECORDS
+    ========================================= */
+
+    partnershipInnings:
+      [],
+  });

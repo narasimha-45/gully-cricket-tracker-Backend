@@ -222,21 +222,21 @@ const TeamStatsSchema = new mongoose.Schema(
   },
 );
 
-const OverallTeamStatsSchema = new mongoose.Schema(
+
+
+const SeasonTeamStatsSchema = new mongoose.Schema(
   {
+    seasonId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Season",
+      required: true,
+    },
+
     teamId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "TeamProfile",
       required: true,
-      unique: true,
     },
-
-    seasonsPlayed: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Season",
-      },
-    ],
 
     stats: {
       type: TeamStatsSchema,
@@ -248,8 +248,18 @@ const OverallTeamStatsSchema = new mongoose.Schema(
   },
 );
 
-const OverallTeamStats =
-  mongoose.models.OverallTeamStats ||
-  mongoose.model("OverallTeamStats", OverallTeamStatsSchema);
+SeasonTeamStatsSchema.index(
+  {
+    seasonId: 1,
+    teamId: 1,
+  },
+  {
+    unique: true,
+  },
+);
 
-export default OverallTeamStats;
+const SeasonTeamStats =
+  mongoose.models.SeasonTeamStats ||
+  mongoose.model("SeasonTeamStats", SeasonTeamStatsSchema);
+
+export default SeasonTeamStats;

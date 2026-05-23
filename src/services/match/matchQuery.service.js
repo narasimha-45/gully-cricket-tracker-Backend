@@ -1,5 +1,5 @@
 import Match from "../../models/match.model.js";
-
+import { denormalizeMatch } from "./denormalizeMatch.js";
 
 /* ======================================================
    GET MATCH SCORECARD
@@ -8,9 +8,17 @@ import Match from "../../models/match.model.js";
 export const getMatchScorecard = async (matchId) => {
   const match = await Match.findById(matchId).lean();
 
+  console.log("Normal Match :", match.innings[0].battingStats);
+  
   if (!match) {
     throw new Error("Match not found");
   }
+
+  const denormMatch = await denormalizeMatch(match);
+
+  console.log("Denormalise match:", denormMatch.innings[0].battingStats);
+
+  // console.log("Denormalized Match:", denormMatch.innings[0].battingStats);
 
   /* =========================================
        VIEW MODEL
@@ -18,26 +26,24 @@ export const getMatchScorecard = async (matchId) => {
 
   return {
     matchInfo: {
-      id: match._id,
+      id: denormMatch._id,
 
-      seasonId: match.seasonId,
+      seasonId: denormMatch.seasonId,
 
-      venue: match.venue,
+      date: denormMatch.createdAt,
 
-      date: match.createdAt,
+      toss: denormMatch.toss,
 
-      toss: match.toss,
+      result: denormMatch.result,
 
-      result: match.result,
+      teams: denormMatch.teams,
 
-      teams: match.teams,
-
-      totalOvers: match.totalOvers,
+      totalOvers: denormMatch.totalOvers,
     },
 
-    innings: match.innings || [],
+    innings: denormMatch.innings || [],
 
-    manOfTheMatch: match.result?.manOfTheMatch || null,
+    manOfTheMatch: denormMatch.result?.manOfTheMatch || null,
   };
 };
 
@@ -53,7 +59,9 @@ export const getRecentMatches = async () => {
     .limit(10)
     .lean();
 
-  return matches.map((match) => ({
+  const denormMatches = await denormalizeMatch(matches);
+
+  return denormMatches.map((match) => ({
     id: match._id,
 
     seasonId: match.seasonId,
@@ -79,7 +87,9 @@ export const getSeasonMatches = async (seasonId) => {
     })
     .lean();
 
-  return matches.map((match) => ({
+  const denormMatches = await denormalizeMatch(matches);
+
+  return denormMatches.map((match) => ({
     id: match._id,
 
     teams: match.teams,

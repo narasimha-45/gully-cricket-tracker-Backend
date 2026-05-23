@@ -55,6 +55,10 @@ export const getSeasonTeams = async (req, res) => {
   handleResponse(res, () => teamService.getSeasonTeams(req.params.seasonId));
 };
 
+export const getAllTeams = async (req, res) => {
+  handleResponse(res, () => teamService.getAllTeams());
+};
+
 /* ======================================================
    POINTS TABLE
 ====================================================== */

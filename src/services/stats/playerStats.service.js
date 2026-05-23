@@ -1,72 +1,135 @@
-import PlayerProfile
-  from "../../models/PlayerProfile.js";
+import mongoose from "mongoose";
 
-import OverallPlayerStats
-  from "../../models/OverallPlayerStats.js";
+import PlayerProfile from "../../models/PlayerProfile.js";
 
-import PlayerSeasonStats
-  from "../../models/PlayerSeasonStats.js";
+import OverallPlayerStats from "../../models/OverallPlayerStats.js";
 
-import PlayerMatchPerformance
-  from "../../models/PlayerMatchPerformance.js";
+import SeasonPlayerStats from "../../models/SeasonPlayerStats.js";
+
+import OverallPlayerSplits from "../../models/OverallPlayerSplits.js";
+
+import SeasonPlayerSplits from "../../models/SeasonPlayerSplits.js";
 
 /* ======================================================
    HELPERS
 ====================================================== */
 
-const normalize = (name) =>
-  name.trim().toLowerCase();
+const normalize = (value = "") =>
+  value.trim().toLowerCase();
+
+/* ======================================================
+   RESOLVE PLAYER
+====================================================== */
+
+const resolvePlayer = async (
+  nameOrId,
+) => {
+  /* --------------------------------------
+     ObjectId
+  -------------------------------------- */
+
+  if (
+    mongoose.Types.ObjectId.isValid(
+      nameOrId,
+    )
+  ) {
+    const profile =
+      await PlayerProfile.findById(
+        nameOrId,
+      ).lean();
+
+    if (!profile) {
+      throw new Error(
+        "Player not found",
+      );
+    }
+
+    return profile;
+  }
+
+  /* --------------------------------------
+     Name
+  -------------------------------------- */
+
+  const profile =
+    await PlayerProfile.findOne({
+      name: normalize(nameOrId),
+    }).lean();
+
+  if (!profile) {
+    throw new Error(
+      "Player not found",
+    );
+  }
+
+  return profile;
+};
 
 /* ======================================================
    DERIVED STATS
 ====================================================== */
 
 const getDerivedStats = (
-  stats
+  stats = {},
 ) => {
-  /* BATTING */
+  const batting =
+    stats.batting || {};
 
-  const battingAverage =
-    stats.batting.outs > 0
-      ? (
-          stats.batting.runs /
-          stats.batting.outs
-        ).toFixed(2)
-      : 0;
-
-  const strikeRate =
-    stats.batting.balls > 0
-      ? (
-          (stats.batting.runs /
-            stats.batting.balls) *
-          100
-        ).toFixed(2)
-      : 0;
-
-  /* BOWLING */
-
-  const economy =
-    stats.bowling.balls > 0
-      ? (
-          (stats.bowling.runs /
-            stats.bowling.balls) *
-          6
-        ).toFixed(2)
-      : 0;
-
-  const bowlingAverage =
-    stats.bowling.wickets > 0
-      ? (
-          stats.bowling.runs /
-          stats.bowling.wickets
-        ).toFixed(2)
-      : 0;
+  const bowling =
+    stats.bowling || {};
 
   return {
-    battingAverage,
-    strikeRate,
-    economy,
-    bowlingAverage,
+    battingAverage:
+      batting.outs > 0
+        ? Number(
+            (
+              batting.runs /
+              batting.outs
+            ).toFixed(2),
+          )
+        : 0,
+
+    strikeRate:
+      batting.balls > 0
+        ? Number(
+            (
+              (batting.runs /
+                batting.balls) *
+              100
+            ).toFixed(2),
+          )
+        : 0,
+
+    economy:
+      bowling.balls > 0
+        ? Number(
+            (
+              (bowling.runs /
+                bowling.balls) *
+              6
+            ).toFixed(2),
+          )
+        : 0,
+
+    bowlingAverage:
+      bowling.wickets > 0
+        ? Number(
+            (
+              bowling.runs /
+              bowling.wickets
+            ).toFixed(2),
+          )
+        : 0,
+
+    bowlingStrikeRate:
+      bowling.wickets > 0
+        ? Number(
+            (
+              bowling.balls /
+              bowling.wickets
+            ).toFixed(2),
+          )
+        : 0,
   };
 };
 
@@ -75,33 +138,27 @@ const getDerivedStats = (
 ====================================================== */
 
 export const getPlayerProfile =
-  async (name) => {
-    const normalized =
-      normalize(name);
-
+  async (nameOrId) => {
     const profile =
-      await PlayerProfile.findOne({
-        name: normalized,
-      }).lean();
+      await resolvePlayer(
+        nameOrId,
+      );
 
     const stats =
-      await OverallPlayerStats.findOne({
-        name: normalized,
-      }).lean();
-
-    if (!profile || !stats) {
-      throw new Error(
-        "Player not found"
-      );
-    }
+      await OverallPlayerStats.findOne(
+        {
+          playerId: profile._id,
+        },
+      ).lean();
 
     return {
       profile,
 
-      stats,
+      stats: stats || null,
 
-      derived:
-        getDerivedStats(stats),
+      derived: stats
+        ? getDerivedStats(stats)
+        : null,
     };
   };
 
@@ -111,30 +168,84 @@ export const getPlayerProfile =
 
 export const getPlayerMatches =
   async (
-    name,
-    query = {}
+    nameOrId,
+    query = {},
   ) => {
-    const page =
-      Number(query.page) || 1;
+    const profile =
+      await resolvePlayer(
+        nameOrId,
+      );
 
-    const limit =
-      Number(query.limit) || 10;
+    const {
+      seasonId,
+
+      type = "batting",
+
+      limit = 20,
+
+      page = 1,
+    } = query;
 
     const skip =
-      (page - 1) * limit;
+      (Number(page) - 1) *
+      Number(limit);
 
-    const matches =
-      await PlayerMatchPerformance.find({
-        name: normalize(name),
-      })
-        .sort({
-          matchDate: -1,
-        })
-        .skip(skip)
-        .limit(limit)
-        .lean();
+    const Model = seasonId
+      ? SeasonPlayerSplits
+      : OverallPlayerSplits;
 
-    return matches;
+    const filter = {
+      playerId: profile._id,
+    };
+
+    if (seasonId) {
+      filter.seasonId =
+        new mongoose.Types.ObjectId(
+          seasonId,
+        );
+    }
+
+    const splits =
+      await Model.findOne(
+        filter,
+      ).lean();
+
+    if (!splits) {
+      return {
+        profile,
+        matches: [],
+      };
+    }
+
+    const innings =
+      type === "bowling"
+        ? splits.bowlingInnings ||
+          []
+        : splits.battingInnings ||
+          [];
+
+    const sorted = innings
+      .sort(
+        (a, b) =>
+          new Date(b.date) -
+          new Date(a.date),
+      )
+      .slice(
+        skip,
+        skip + Number(limit),
+      );
+
+    return {
+      profile,
+
+      page: Number(page),
+
+      limit: Number(limit),
+
+      count: innings.length,
+
+      matches: sorted,
+    };
   };
 
 /* ======================================================
@@ -143,33 +254,34 @@ export const getPlayerMatches =
 
 export const getPlayerSeasonStats =
   async (
-    name,
-    seasonId
+    nameOrId,
+    seasonId,
   ) => {
+    const profile =
+      await resolvePlayer(
+        nameOrId,
+      );
+
     const stats =
-      await PlayerSeasonStats.findOne({
-        seasonId,
+      await SeasonPlayerStats.findOne(
+        {
+          seasonId:
+            new mongoose.Types.ObjectId(
+              seasonId,
+            ),
 
-        name: normalize(name),
-      }).lean();
-
-    const playerProfile = await PlayerProfile.findOne({ name: normalize(name) }).lean();
-    if (!playerProfile) {
-      throw new Error("Player not found");
-    }
-
-    if (!stats) {
-      return {
-        profile: playerProfile,
-        stats: null,
-        derived: null,
-      };
-    }
+          playerId: profile._id,
+        },
+      ).lean();
 
     return {
-      profile: playerProfile,
-      stats,
-      derived: getDerivedStats(stats),
+      profile,
+
+      stats: stats || null,
+
+      derived: stats
+        ? getDerivedStats(stats)
+        : null,
     };
   };
 
@@ -179,16 +291,50 @@ export const getPlayerSeasonStats =
 
 export const searchPlayers =
   async (query) => {
-    if (!query) {
+    if (!query?.trim()) {
       return [];
     }
 
-    return await PlayerProfile.find({
-      name: {
-        $regex: query,
-        $options: "i",
-      },
-    })
-      .limit(10)
-      .lean();
+    const players =
+      await PlayerProfile.find({
+        $or: [
+          {
+            name: {
+              $regex: query,
+              $options: "i",
+            },
+          },
+
+          {
+            displayName: {
+              $regex: query,
+              $options: "i",
+            },
+          },
+        ],
+      })
+        .limit(10)
+        .lean();
+
+    return players.map(
+      (player) => ({
+        playerId: player._id,
+
+        name:
+          player.displayName ||
+          player.name,
+
+        totalMatches:
+          player.totalMatches ||
+          0,
+
+        seasonsPlayed:
+          player.seasonsPlayed ||
+          [],
+
+        teamsPlayedFor:
+          player.teamsPlayedFor ||
+          [],
+      }),
+    );
   };

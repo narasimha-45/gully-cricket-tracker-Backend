@@ -1,34 +1,32 @@
 /* ======================================================
-   NORMALIZE NAME
+   NORMALIZE
 ====================================================== */
 
-export const normalizeName = (name = "") => {
-  return name.trim().toLowerCase();
+export const normalize = (value = "") => value.trim().toLowerCase();
+
+/* ======================================================
+   BALLS TO OVERS
+====================================================== */
+
+export const ballsToOvers = (balls = 0) => {
+  return Math.floor(balls / 6) + (balls % 6) / 10;
 };
 
 /* ======================================================
-   SCORE BUCKET
+   GET RUN BUCKET
 ====================================================== */
 
-export const getScoreBucket = (runs) => {
-  if (runs >= 100) return 10;
+export const getRunBucket = (runs = 0) => {
+  if (runs >= 100) return 9;
 
   return Math.floor(runs / 10);
 };
 
 /* ======================================================
-   CREATE SCORE ARRAY
+   DISMISSAL KEY
 ====================================================== */
 
-export const createScoreArray = () => {
-  return Array(11).fill(0);
-};
-
-/* ======================================================
-   DISMISSAL TYPE
-====================================================== */
-
-export const normalizeDismissalType = (type) => {
+export const dismissalKey = (type) => {
   switch (type) {
     case "BOWLED":
       return "bowled";
@@ -54,23 +52,63 @@ export const normalizeDismissalType = (type) => {
 };
 
 /* ======================================================
-   INCREMENT OBJECT VALUE
+   PUSH RECENT MATCH
 ====================================================== */
 
-export const incrementMapValue = (obj, key, value = 1) => {
-  obj[key] = (obj[key] || 0) + value;
+export const pushRecentMatch = (bucket, matchId, limit = 10000) => {
+  if (!bucket.recentMatches) {
+    bucket.recentMatches = [];
+  }
+
+  bucket.count += 1;
+
+  bucket.recentMatches.unshift(matchId);
+
+  bucket.recentMatches = bucket.recentMatches.slice(0, limit);
 };
 
-export const incrementNestedValue = (obj, key, nestedKey, amount = 1) => {
-  if (!obj[key]) {
-    obj[key] = {
-      total: 0,
-    };
+/* ======================================================
+   UPDATE TOP LIST
+====================================================== */
+
+export function updateTopList(list, playerId, dismissalType = null) {
+  const existing = list.find((x) => String(x.playerId) === String(playerId));
+
+  if (existing) {
+    existing.count += 1;
+    if (dismissalType) {
+      if (!existing.dismissalBreakdown) existing.dismissalBreakdown = {};
+      existing.dismissalBreakdown[dismissalType] =
+        (existing.dismissalBreakdown[dismissalType] || 0) + 1;
+    }
+  } else {
+    const entry = { playerId, count: 1, dismissalBreakdown: {} };
+    if (dismissalType) {
+      entry.dismissalBreakdown[dismissalType] = 1;
+    }
+    list.push(entry);
   }
 
-  obj[key].total = (obj[key].total || 0) + amount;
+  list.sort((a, b) => b.count - a.count);
+  return list.slice(0, 1000);
+}
 
-  if (nestedKey) {
-    obj[key][nestedKey] = (obj[key][nestedKey] || 0) + amount;
+/* ======================================================
+   ENSURE SPLIT
+====================================================== */
+
+export const ensureSplit = (target, key, defaultPlayerSplit) => {
+  if (!target[key]) {
+    target[key] = defaultPlayerSplit;
   }
+
+  return target[key];
+};
+
+/* ======================================================
+   GET CANONICAL PARTNERSHIP PAIR
+====================================================== */
+
+export const getCanonicalPartnershipPair = (player1Id, player2Id) => {
+  return [player1Id, player2Id].map(String).sort();
 };

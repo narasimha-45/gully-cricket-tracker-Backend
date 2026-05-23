@@ -14,6 +14,24 @@ const dismissalTypes = [
   "NOT_OUT",
 ];
 
+const deliveryTypes = [
+  "RUN",
+  "WIDE",
+  "NO_BALL",
+  "BYE",
+  "LEG_BYE",
+  "WICKET",
+];
+
+const wicketTypes = [
+  "BOWLED",
+  "CAUGHT",
+  "LBW",
+  "RUN_OUT",
+  "STUMPED",
+  "HIT_WICKET",
+];
+
 /* ======================================================
    DISMISSAL
 ====================================================== */
@@ -58,6 +76,47 @@ const bowlingSchema = z.object({
 });
 
 /* ======================================================
+   BALL WICKET
+====================================================== */
+
+const wicketSchema = z.object({
+  type: z.enum(wicketTypes),
+
+  outBatsman: z.string(),
+
+  helper: z.string().nullable(),
+});
+
+/* ======================================================
+   BALL
+====================================================== */
+
+const ballSchema = z.object({
+  over: z.number().min(0),
+
+  ballInOver: z.number().min(0),
+
+  actualBallNum: z.number().min(0),
+
+  striker: z.string(),
+
+  nonStriker: z.string(),
+
+  bowler: z.string(),
+
+  runs: z.number().min(0),
+
+  type: z.enum(deliveryTypes),
+
+  isWicket: z.boolean(),
+
+  wicket:
+    wicketSchema.nullable(),
+
+  timestamp: z.number(),
+});
+
+/* ======================================================
    INNINGS
 ====================================================== */
 
@@ -73,16 +132,44 @@ const inningsSchema = z.object({
   balls: z.number().min(0),
 
   battingStats: z.record(
-    battingSchema
+    z.string(),
+    battingSchema,
   ),
 
   bowlingStats: z.record(
-    bowlingSchema
+    z.string(),
+    bowlingSchema,
   ),
 
   dismissals: z.record(
-    dismissalSchema
+    z.string(),
+    dismissalSchema,
   ),
+
+  extras: z.object({
+    wides: z.number().min(0),
+
+    noBalls: z.number().min(0),
+  }),
+
+  ballByBall: z
+    .array(ballSchema)
+    .default([]),
+
+  completed:
+    z.boolean().default(true),
+});
+
+/* ======================================================
+   TEAM
+====================================================== */
+
+const teamSchema = z.object({
+  name: z.string(),
+
+  players: z
+    .array(z.string())
+    .min(1),
 });
 
 /* ======================================================
@@ -95,27 +182,102 @@ export const matchSchema =
 
     venue: z.string(),
 
-    toss: z.object({
-      wonBy: z.string(),
+    matchType: z
+      .enum([
+        "OVERS",
+        "TEST",
+        "CUSTOM",
+      ])
+      .default("OVERS"),
 
-      decision: z.enum([
-        "BAT",
-        "BOWL",
-      ]),
+    totalOvers: z
+      .number()
+      .min(1),
+
+    teams: z.object({
+      teamA: teamSchema,
+
+      teamB: teamSchema,
+    }),
+
+    toss: z.object({
+      winner: z.string(),
+
+      decision: z.string(),
     }),
 
     result: z.object({
       winner: z.string(),
 
-      margin: z.number(),
+      type: z.enum([
+        "RUNS",
+        "WICKETS",
+        "TIE",
+        "NO_RESULT",
+      ]),
 
-      type: z.string(),
+      margin: z.number(),
 
       manOfTheMatch:
         z.string(),
     }),
 
-    innings: z.array(
-      inningsSchema
-    ),
-  });
+    innings: z
+      .array(inningsSchema)
+      .min(1),
+
+    completedAt: z
+      .string()
+      .datetime()
+      .optional(),
+  })
+  .superRefine(
+    (match, ctx) => {
+      /* =========================================
+         TEAM VALIDATION
+      ========================================= */
+
+      if (
+        match.teams.teamA.name ===
+        match.teams.teamB.name
+      ) {
+        ctx.addIssue({
+          code:
+            z.ZodIssueCode.custom,
+
+          path: [
+            "teams",
+          ],
+
+          message:
+            "Both teams cannot be same",
+        });
+      }
+
+      /* =========================================
+         INNINGS TEAM VALIDATION
+      ========================================= */
+
+      for (const [
+        index,
+        innings,
+      ] of match.innings.entries()) {
+        if (
+          innings.battingTeam ===
+          innings.bowlingTeam
+        ) {
+          ctx.addIssue({
+            code:
+              z.ZodIssueCode.custom,
+
+            path: [
+              "innings",
+              index,
+            ],
+
+            message:
+              "Batting and bowling teams cannot be same",
+          });
+        }
+      }
+    });

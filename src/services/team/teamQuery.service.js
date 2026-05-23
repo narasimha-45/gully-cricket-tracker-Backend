@@ -1,4 +1,7 @@
-import Team from "../../models/team.model.js";
+import OverallPlayerSplits from "../../models/OverallPlayerSplits.js";
+import SeasonTeamStats from "../../models/SeasonTeamStats.js";
+import OverallTeamStats from "../../models/OverallTeamStats.js";
+import TeamProfile from "../../models/TeamProfile.js";
 import Match from "../../models/match.model.js";
 
 /* ======================================================
@@ -7,16 +10,20 @@ import Match from "../../models/match.model.js";
 
 export const getTeamProfile = async (teamName) => {
   // 1. Find the latest version of the team
-  let team = await Team.findOne({
+  const profile = await TeamProfile.findOne({
     name: { $regex: new RegExp(`^${teamName}$`, "i") },
-  })
-    .sort({ createdAt: -1 })
-    .populate("players", "name")
-    .lean();
+  }).lean();
 
-  if (!team) {
+  if (!profile) {
     throw new Error("Team not found");
   }
+
+  const teamStats = await OverallTeamStats.findOne({ teamId: profile._id }).lean();
+  
+  let team = {
+    ...profile,
+    stats: teamStats || {}
+  };
 
   // 2. If players array is empty, fallback to Match history
   if (!team.players || team.players.length === 0) {
@@ -81,21 +88,43 @@ export const getTeamMatches = async (teamName, query = {}) => {
 ====================================================== */
 
 export const getSeasonTeams = async (seasonId) => {
-  return await Team.find({
-    seasonId,
-  })
-    .sort({ "stats.points": -1 })
+  const stats = await SeasonTeamStats.find({ seasonId })
+    .sort({ points: -1 })
+    .populate("teamId", "name")
     .lean();
+    
+  return stats.map(s => ({
+    _id: s.teamId?._id,
+    name: s.teamId?.name,
+    stats: s,
+    seasonId
+  }));
 };
+
+export const getAllTeams = async () => {
+  const profiles = await TeamProfile.find({}).lean();
+  
+  return profiles.map(p => ({
+    _id: p._id,
+    name: p.name,
+  }));
+}
 
 /* ======================================================
    POINTS TABLE
 ====================================================== */
 
 export const getPointsTable = async (seasonId) => {
-  const teams = await Team.find({
-    seasonId,
-  }).lean();
+  const stats = await SeasonTeamStats.find({ seasonId })
+    .populate("teamId", "name")
+    .lean();
+    
+  const teams = stats.map(s => ({
+    _id: s.teamId?._id,
+    name: s.teamId?.name,
+    stats: s,
+    seasonId
+  }));
 
   return teams
     .map((team) => {
@@ -123,62 +152,34 @@ export const getPointsTable = async (seasonId) => {
 };
 
 export const getGlobalTeamProfile = async (teamName) => {
-  const teams = await Team.find({ name: teamName }).lean();
+  const profile = await TeamProfile.findOne({ 
+    name: { $regex: new RegExp(`^${teamName}$`, "i") } 
+  }).lean();
   
-  if (teams.length === 0) {
+  if (!profile) {
     throw new Error("Team not found");
   }
-
+  
+  const statsDoc = await OverallTeamStats.findOne({ teamId: profile._id }).lean();
+  const s = statsDoc || {};
+  
   const stats = {
-    played: 0, wins: 0, losses: 0, ties: 0,
-    runsScored: 0, wicketsLost: 0, ballsFaced: 0,
-    runsConceded: 0, wicketsTaken: 0, ballsBowled: 0,
-    points: 0,
-    highestScore: { runs: 0, wickets: 0, overs: 0 },
-    lowestScore: { runs: 9999, wickets: 0, overs: 0 },
-    defending: { wins: [], losses: [] },
-    chasing: { wins: [], losses: [] },
-    highestTotalDefended: { runs: 0, wickets: 0, overs: 0 },
-    lowestTotalDefended: { runs: 9999, wickets: 0, overs: 0 },
-    highestSuccessfulChase: { runs: 0, wickets: 0, overs: 0 },
-    lowestSuccessfulChase: { runs: 9999, wickets: 0, overs: 0 },
-    biggestWin: { margin: 0, type: null }
+    played: s.played || 0, wins: s.wins || 0, losses: s.losses || 0, ties: s.ties || 0,
+    runsScored: s.runsScored || 0, wicketsLost: s.wicketsLost || 0, ballsFaced: s.ballsFaced || 0,
+    runsConceded: s.runsConceded || 0, wicketsTaken: s.wicketsTaken || 0, ballsBowled: s.ballsBowled || 0,
+    points: s.points || 0,
+    highestScore: s.highestScore || { runs: 0, wickets: 0, overs: 0 },
+    lowestScore: s.lowestScore || { runs: 0, wickets: 0, overs: 0 },
+    defending: s.defending || { wins: [], losses: [] },
+    chasing: s.chasing || { wins: [], losses: [] },
+    highestTotalDefended: s.highestTotalDefended || { runs: 0, wickets: 0, overs: 0 },
+    lowestTotalDefended: s.lowestTotalDefended || { runs: 0, wickets: 0, overs: 0 },
+    highestSuccessfulChase: s.highestSuccessfulChase || { runs: 0, wickets: 0, overs: 0 },
+    lowestSuccessfulChase: s.lowestSuccessfulChase || { runs: 0, wickets: 0, overs: 0 },
+    biggestWin: s.biggestWin || { margin: 0, type: null }
   };
 
-  teams.forEach(t => {
-    const s = t.stats;
-    stats.played += s.played || 0;
-    stats.wins += s.wins || 0;
-    stats.losses += s.losses || 0;
-    stats.ties += s.ties || 0;
-    stats.runsScored += s.runsScored || 0;
-    stats.wicketsLost += s.wicketsLost || 0;
-    stats.ballsFaced += s.ballsFaced || 0;
-    stats.runsConceded += s.runsConceded || 0;
-    stats.wicketsTaken += s.wicketsTaken || 0;
-    stats.ballsBowled += s.ballsBowled || 0;
-    stats.points += s.points || 0;
-
-    if (s.highestScore?.runs > stats.highestScore.runs) stats.highestScore = s.highestScore;
-    if (s.lowestScore?.runs && s.lowestScore.runs < stats.lowestScore.runs) stats.lowestScore = s.lowestScore;
-    
-    if (s.defending) {
-      stats.defending.wins.push(...(s.defending.wins || []));
-      stats.defending.losses.push(...(s.defending.losses || []));
-    }
-    if (s.chasing) {
-      stats.chasing.wins.push(...(s.chasing.wins || []));
-      stats.chasing.losses.push(...(s.chasing.losses || []));
-    }
-
-    if (s.highestTotalDefended?.runs > stats.highestTotalDefended.runs) stats.highestTotalDefended = s.highestTotalDefended;
-    if (s.lowestTotalDefended?.runs && s.lowestTotalDefended.runs < stats.lowestTotalDefended.runs) stats.lowestTotalDefended = s.lowestTotalDefended;
-    
-    if (s.highestSuccessfulChase?.runs > stats.highestSuccessfulChase.runs) stats.highestSuccessfulChase = s.highestSuccessfulChase;
-    if (s.lowestSuccessfulChase?.runs && s.lowestSuccessfulChase.runs < stats.lowestSuccessfulChase.runs) stats.lowestSuccessfulChase = s.lowestSuccessfulChase;
-
-    if (s.biggestWin?.margin > stats.biggestWin.margin) stats.biggestWin = s.biggestWin;
-  });
+  // No iteration over teams array needed since OverallTeamStats handles aggregation
 
   if (stats.lowestScore.runs === 9999) stats.lowestScore.runs = 0;
   if (stats.lowestTotalDefended.runs === 9999) stats.lowestTotalDefended.runs = 0;

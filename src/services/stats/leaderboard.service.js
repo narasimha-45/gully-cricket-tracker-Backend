@@ -1,5 +1,5 @@
 import { maxLength } from "zod";
-import PlayerSeasonStats from "../../models/PlayerSeasonStats.js";
+import PlayerSeasonStats from "../../models/SeasonPlayerStats.js";
 import OverallPlayerStats from "../../models/OverallPlayerStats.js";
 
 /* ======================================================
@@ -51,7 +51,7 @@ export const getSeasonBattingLeaderboard = async (seasonId) => {
       "batting.runs": -1,
     })
     .lean();
-
+  console.log("Season Batting LEaderboard", players);
   return players.map((player) => ({
     name: player.name,
 
@@ -163,7 +163,7 @@ export const getSeasonFieldingLeaderboard = async (seasonId) => {
       "fielding.catches": -1,
     })
     .lean();
-
+  console.log("players",players)
   return players.map((player) => ({
     name: player.name,
 

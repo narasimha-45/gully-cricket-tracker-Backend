@@ -1,6 +1,6 @@
 import OverallPlayerStats from "../../../models/OverallPlayerStats.js";
 
-import PlayerSeasonStats from "../../../models/PlayerSeasonStats.js";
+import PlayerSeasonStats from "../../../models/SeasonPlayerStats.js";
 
 import PlayerProfile from "../../../models/PlayerProfile.js";
 
@@ -8,7 +8,7 @@ import TeamProfile from "../../../models/TeamProfile.js";
 
 import OverallTeamStats from "../../../models/OverallTeamStats.js";
 
-import TeamSeasonStats from "../../../models/TeamSeasonStats.js";
+import TeamSeasonStats from "../../../models/SeasonTeamStats.js";
 
 /* ======================================================
    HELPERS

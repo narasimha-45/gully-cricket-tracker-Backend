@@ -93,6 +93,8 @@ export const getPlayerSeasonStats = async (req, res) => {
   );
 };
 
+import * as playerSplitsService from "../services/stats/playerSplits.service.js";
+
 /* ======================================================
    SEARCH PLAYERS
 ====================================================== */
@@ -102,17 +104,27 @@ export const searchPlayers = async (req, res) => {
 };
 
 /* ======================================================
+   PLAYER SPLITS
+====================================================== */
+
+export const getPlayerSplits = async (req, res) => {
+  handleResponse(res, () => playerSplitsService.getPlayerSplits(req.params.name, req.query));
+};
+
+/* ======================================================
    BATTING LEADERBOARD
 ====================================================== */
 
+import * as leaderboardFilteredService from "../services/stats/leaderboardFiltered.service.js";
+
 export const getSeasonBattingLeaderboard = async (req, res) => {
   handleResponse(res, () =>
-    leaderboardService.getSeasonBattingLeaderboard(req.params.seasonId),
+    leaderboardFilteredService.getFilteredBattingLeaderboard({ ...req.query, seasonId: req.params.seasonId })
   );
 };
 
 export const getOverallBattingLeaderboard = async (req, res) => {
-  handleResponse(res, () => leaderboardService.getOverallBattingLeaderboard());
+  handleResponse(res, () => leaderboardFilteredService.getFilteredBattingLeaderboard(req.query));
 }
 
 
@@ -122,12 +134,12 @@ export const getOverallBattingLeaderboard = async (req, res) => {
 
 export const getSeasonBowlingLeaderboard = async (req, res) => {
   handleResponse(res, () =>
-    leaderboardService.getSeasonBowlingLeaderboard(req.params.seasonId),
+    leaderboardFilteredService.getFilteredBowlingLeaderboard({ ...req.query, seasonId: req.params.seasonId })
   );
 };
 
 export const getOverallBowlingLeaderboard = async (req, res) => {
-  handleResponse(res, () => leaderboardService.getOverallBowlingLeaderboard());
+  handleResponse(res, () => leaderboardFilteredService.getFilteredBowlingLeaderboard(req.query));
 }
 
 /* ======================================================
@@ -136,12 +148,12 @@ export const getOverallBowlingLeaderboard = async (req, res) => {
 
 export const getSeasonFieldingLeaderboard = async (req, res) => {
   handleResponse(res, () =>
-    leaderboardService.getSeasonFieldingLeaderboard(req.params.seasonId),
+    leaderboardFilteredService.getFilteredFieldingLeaderboard({ ...req.query, seasonId: req.params.seasonId }),
   );
 };
 
 export const getOverallFieldingLeaderboard = async (req, res) => {
-  handleResponse(res, () => leaderboardService.getOverallFieldingLeaderboard());
+  handleResponse(res, () => leaderboardFilteredService.getFilteredFieldingLeaderboard(req.query));
 }
 
 /* ======================================================
@@ -150,6 +162,6 @@ export const getOverallFieldingLeaderboard = async (req, res) => {
 
 export const getMomLeaderboard = async (req, res) => {
   handleResponse(res, () =>
-    leaderboardService.getMomLeaderboard(req.params.seasonId),
+    leaderboardFilteredService.getFilteredMomLeaderboard({ ...req.query, seasonId: req.params.seasonId }),
   );
 };

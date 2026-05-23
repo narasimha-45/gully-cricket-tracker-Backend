@@ -4,76 +4,206 @@ import { flushAccumulators } from "./shared/bulkFlusher.js";
 
 import { processTeamStats } from "./processTeamStats.service.js";
 
-import { processBatting } from "./processBatting.service.js";
+import { processPlayerStats } from "./processPlayerStats.service.js";
 
-import { processBowling } from "./processBowling.service.js";
-
-import { processFielding } from "./processFielding.service.js";
-
-import { processPlayerProfiles } from "./processPlayerProfile.service.js";
-
-import { invalidateMatchCaches } from "../stats/cache.service.js";
-
-import { processBallAnalytics } from "./processBallAnalytics.service.js";
+import { processPlayerSplits } from "./processPlayerSplits.service.js";
 
 import { processRivalries } from "./processRivalries.service.js";
 
+import { processPartnershipAggregates } from "./processPartnershipAggregates.service.js";
+
+import { processPartnershipRecords } from "./processPartnershipRecords.service.js";
+
+import { processBallAnalytics } from "./processBallAnalytics.service.js";
+
+import { invalidateMatchCaches } from "../stats/cache.service.js";
+
 /* ======================================================
-   PROCESS MATCH
+   PROCESS COMPLETED MATCH
 ====================================================== */
 
-export const processCompletedMatch = async (match, state) => {
-  /* =========================================
-       CREATE ACCUMULATORS
-    ========================================= */
+export const processCompletedMatch = async (
+  match
+) => {
+  console.log("========================================");
 
-  const accumulators = createAccumulators();
+  console.log("PROCESSING COMPLETED MATCH");
 
-  /* =========================================
-       PROCESSORS
-    ========================================= */
-
-  console.log("Processing Team Stats................");
-  await processTeamStats(match, state, accumulators);
-  console.log("Team Stats Processed Successfully");
-
-  console.log("Processing Batting................");
-  await processBatting(match, state, accumulators);
-  console.log("Batting Processed Successfully");
-
-  console.log("Processing Bowling................");
-  await processBowling(match, state, accumulators);
-  console.log("Bowling Processed Successfully");
-
-  console.log("Processing Fielding................");
-  await processFielding(match, state, accumulators);
-  console.log("Fielding Processed Successfully");
-
-  console.log("Processing Player Profiles................");
-  await processPlayerProfiles(match, state, accumulators);
-  console.log("Player Profiles Processed Successfu lly");
-
-  console.log("Processing Ball Analytics................");
-  await processBallAnalytics(match, state, accumulators);
-  console.log("Ball Analytics Processed Successfully");
-
-  console.log("Processing Player Rivalries................");
-  await processRivalries(match, state, accumulators);
-  console.log("Player Rivalries Processed Successfully");
+  console.log("========================================");
 
   /* =========================================
-       FLUSH DATABASE
-    ========================================= */
-  console.log("Flushing Accumulators................");
-  await flushAccumulators(accumulators);
-  console.log("Accumulators Flushed Successfully");
+     CREATE ACCUMULATORS
+  ========================================= */
+
+  const accumulators =
+    createAccumulators();
+    
+    
+  /* =========================================
+     PROCESS TEAM STATS
+  ========================================= */
+
+  console.log(
+    "Processing Team Stats................"
+  );
+
+  await processTeamStats(
+    match,
+    accumulators
+  );
+
+  console.log(
+    "Team Stats Processed Successfully"
+  );
 
   /* =========================================
-       INVALIDATE CACHE
-    ========================================= */
-  console.log("Invalidating Caches................");
+     PROCESS PLAYER STATS
+  ========================================= */
+
+  console.log(
+    "Processing Player Stats................"
+  );
+
+  await processPlayerStats(
+    match,
+    accumulators
+  );
+
+  console.log(
+    "Player Stats Processed Successfully"
+  );
+
+  /* =========================================
+     PROCESS PLAYER SPLITS
+  ========================================= */
+
+  console.log(
+    "Processing Player Splits................"
+  );
+
+  await processPlayerSplits(
+    match,
+    accumulators
+  );
+
+  console.log(
+    "Player Splits Processed Successfully"
+  );
+
+  /* =========================================
+     PROCESS RIVALRIES
+  ========================================= */
+
+  console.log(
+    "Processing Rivalries................"
+  );
+
+  await processRivalries(
+    match,
+    accumulators
+  );
+
+  console.log(
+    "Rivalries Processed Successfully"
+  );
+
+  /* =========================================
+     PROCESS PARTNERSHIP AGGREGATES
+  ========================================= */
+
+  console.log(
+    "Processing Partnership Aggregates................"
+  );
+
+  await processPartnershipAggregates(
+    match,
+    accumulators
+  );
+
+  console.log(
+    "Partnership Aggregates Processed Successfully"
+  );
+
+  /* =========================================
+     PROCESS PARTNERSHIP RECORDS
+  ========================================= */
+
+  console.log(
+    "Processing Partnership Records................"
+  );
+
+  await processPartnershipRecords(
+    match,
+    accumulators
+  );
+
+  console.log(
+    "Partnership Records Processed Successfully"
+  );
+
+  /* =========================================
+     PROCESS BALL ANALYTICS
+  ========================================= */
+
+  const hasBallData = Boolean(
+    match?.innings?.some(
+      (innings) =>
+        innings?.ballByBall?.length
+    )
+  );
+
+  if (hasBallData) {
+    console.log(
+      "Processing Ball Analytics................"
+    );
+
+    await processBallAnalytics(
+      match,
+      accumulators
+    );
+
+    console.log(
+      "Ball Analytics Processed Successfully"
+    );
+  }
+
+  /* =========================================
+     FLUSH DATABASE
+  ========================================= */
+
+  console.log(
+    "Flushing Accumulators................"
+  );
+
+  await flushAccumulators(
+    accumulators
+  );
+
+  console.log(
+    "Accumulators Flushed Successfully"
+  );
+
+  /* =========================================
+     INVALIDATE CACHE
+  ========================================= */
+
+  console.log(
+    "Invalidating Match Caches................"
+  );
 
   await invalidateMatchCaches(match);
+
+  console.log(
+    "Caches Invalidated Successfully"
+  );
+
+  console.log("========================================");
+
+  console.log(
+    "MATCH PROCESSING COMPLETED"
+  );
+
+  console.log("========================================");
 
   return true;
 };
