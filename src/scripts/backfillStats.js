@@ -400,27 +400,79 @@ async function migrateSeasons() {
 ========================================================= */
 
 async function createProfiles(oldMatches) {
+  const teamPlayersMap = new Map();
+
   for (const match of oldMatches) {
     for (const side of [match.teams.teamA, match.teams.teamB]) {
       const teamName = renameTeam(side.name);
 
+      /* =========================================
+         CREATE TEAM
+      ========================================= */
+
       if (!teamMap.has(teamName)) {
-        const doc = await TeamProfile.create({ name: teamName });
+        const doc = await TeamProfile.create({
+          name: teamName,
+        });
+
         teamMap.set(teamName, doc);
       }
 
+      /* =========================================
+         INIT TEAM PLAYER SET
+      ========================================= */
+
+      if (!teamPlayersMap.has(teamName)) {
+        teamPlayersMap.set(teamName, new Set());
+      }
+
+      const playerSet = teamPlayersMap.get(teamName);
+
+      /* =========================================
+         CREATE PLAYERS
+      ========================================= */
+
       for (const rawPlayer of side.players) {
         const playerName = normalize(rawPlayer);
+
         if (!playerMap.has(playerName)) {
-          const doc = await PlayerProfile.create({ name: playerName });
+          const doc = await PlayerProfile.create({
+            name: playerName,
+          });
+
           playerMap.set(playerName, doc);
         }
+
+        const playerDoc = playerMap.get(playerName);
+
+        playerSet.add(String(playerDoc._id));
       }
     }
   }
 
+  /* =========================================
+     UPDATE TEAM PLAYERS
+  ========================================= */
+
+  await Promise.all(
+    [...teamPlayersMap.entries()].map(async ([teamName, playerIds]) => {
+      const teamDoc = teamMap.get(teamName);
+
+      await TeamProfile.updateOne(
+        { _id: teamDoc._id },
+        {
+          $set: {
+            players: [...playerIds],
+          },
+        },
+      );
+    }),
+  );
+
   console.log(
-    `✅ Profiles Created:\n   Players: ${playerMap.size}\n   Teams: ${teamMap.size}`,
+    `✅ Profiles Created:
+   Players: ${playerMap.size}
+   Teams: ${teamMap.size}`,
   );
 }
 

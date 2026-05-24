@@ -37,6 +37,10 @@ export const getTeamProfile = async (req, res) => {
   handleResponse(res, () => teamService.getTeamProfile(req.params.teamName));
 };
 
+
+export const getTeamPlayers = async(req,res) =>{
+  handleResponse(res, () => teamService.getTeamPlayers(req.params.teamId));
+}
 /* ======================================================
    TEAM MATCHES
 ====================================================== */
