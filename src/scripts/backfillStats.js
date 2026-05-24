@@ -288,6 +288,7 @@ function getPlayerAcc(map, key, extras = {}) {
     map.set(key, {
       ...extras,
       seasonsPlayed: new Set(),
+      teamsPlayedFor: new Set(), // ← add this
       ...defaultPlayerStats(),
     });
   return map.get(key);
@@ -655,6 +656,8 @@ function computeAnalytics(matches) {
         });
 
         op.seasonsPlayed.add(String(seasonId));
+        if (!op.teamsPlayedFor) op.teamsPlayedFor = new Set();
+        op.teamsPlayedFor.add(String(battingTeamId));
 
         const sp = getPlayerAcc(acc.seasonPlayer, `${seasonId}_${pid}`, {
           seasonId: match.seasonId,
@@ -926,6 +929,9 @@ function computeAnalytics(matches) {
           seasonId: match.seasonId,
           playerId,
         });
+
+        if (!op.teamsPlayedFor) op.teamsPlayedFor = new Set();
+        op.teamsPlayedFor.add(String(bowlingTeamId));
 
         const wickets = bowler.wickets || 0;
         const balls = bowler.balls || 0;
@@ -1288,69 +1294,93 @@ async function flush() {
 
   for (const doc of acc.overallPlayer.values()) {
     doc.seasonsPlayed = [...doc.seasonsPlayed];
+    doc.teamsPlayedFor = [...(doc.teamsPlayedFor || new Set())];
   }
 
-  await Promise.all([
-    OverallPlayerStats.bulkWrite(
-      [...acc.overallPlayer.values()].map((doc) => ({
-        updateOne: {
-          filter: { playerId: doc.playerId },
-          update: { $set: doc },
-          upsert: true,
+  (PlayerProfile.bulkWrite(
+    [...acc.overallPlayer.values()].map((doc) => ({
+      updateOne: {
+        filter: { _id: doc.playerId },
+        update: {
+          $set: {
+            seasonsPlayed: doc.seasonsPlayed,
+            teamsPlayedFor: doc.teamsPlayedFor,
+            totalMatches: doc.totalMatches,
+          },
         },
-      })),
-    ),
+      },
+    })),
+  ),
+    await Promise.all([
+      TeamProfile.bulkWrite(
+        [...acc.overallTeam.values()].map((doc) => ({
+          updateOne: {
+            filter: { _id: doc.teamId },
+            update: { $set: { seasonsPlayed: doc.seasonsPlayed } },
+          },
+        })),
+      ),
 
-    SeasonPlayerStats.bulkWrite(
-      [...acc.seasonPlayer.values()].map((doc) => ({
-        updateOne: {
-          filter: { seasonId: doc.seasonId, playerId: doc.playerId },
-          update: { $set: doc },
-          upsert: true,
-        },
-      })),
-    ),
+      OverallPlayerStats.bulkWrite(
+        [...acc.overallPlayer.values()].map((doc) => ({
+          updateOne: {
+            filter: { playerId: doc.playerId },
+            update: { $set: doc },
+            upsert: true,
+          },
+        })),
+      ),
 
-    OverallTeamStats.bulkWrite(
-      [...acc.overallTeam.values()].map((doc) => ({
-        updateOne: {
-          filter: { teamId: doc.teamId },
-          update: { $set: doc },
-          upsert: true,
-        },
-      })),
-    ),
+      SeasonPlayerStats.bulkWrite(
+        [...acc.seasonPlayer.values()].map((doc) => ({
+          updateOne: {
+            filter: { seasonId: doc.seasonId, playerId: doc.playerId },
+            update: { $set: doc },
+            upsert: true,
+          },
+        })),
+      ),
 
-    SeasonTeamStats.bulkWrite(
-      [...acc.seasonTeam.values()].map((doc) => ({
-        updateOne: {
-          filter: { seasonId: doc.seasonId, teamId: doc.teamId },
-          update: { $set: doc },
-          upsert: true,
-        },
-      })),
-    ),
+      OverallTeamStats.bulkWrite(
+        [...acc.overallTeam.values()].map((doc) => ({
+          updateOne: {
+            filter: { teamId: doc.teamId },
+            update: { $set: doc },
+            upsert: true,
+          },
+        })),
+      ),
 
-    OverallPlayerSplits.bulkWrite(
-      [...acc.overallPlayerSplits.values()].map((doc) => ({
-        updateOne: {
-          filter: { playerId: doc.playerId },
-          update: { $set: doc },
-          upsert: true,
-        },
-      })),
-    ),
+      SeasonTeamStats.bulkWrite(
+        [...acc.seasonTeam.values()].map((doc) => ({
+          updateOne: {
+            filter: { seasonId: doc.seasonId, teamId: doc.teamId },
+            update: { $set: doc },
+            upsert: true,
+          },
+        })),
+      ),
 
-    SeasonPlayerSplits.bulkWrite(
-      [...acc.seasonPlayerSplits.values()].map((doc) => ({
-        updateOne: {
-          filter: { seasonId: doc.seasonId, playerId: doc.playerId },
-          update: { $set: doc },
-          upsert: true,
-        },
-      })),
-    ),
-  ]);
+      OverallPlayerSplits.bulkWrite(
+        [...acc.overallPlayerSplits.values()].map((doc) => ({
+          updateOne: {
+            filter: { playerId: doc.playerId },
+            update: { $set: doc },
+            upsert: true,
+          },
+        })),
+      ),
+
+      SeasonPlayerSplits.bulkWrite(
+        [...acc.seasonPlayerSplits.values()].map((doc) => ({
+          updateOne: {
+            filter: { seasonId: doc.seasonId, playerId: doc.playerId },
+            update: { $set: doc },
+            upsert: true,
+          },
+        })),
+      ),
+    ]));
 
   console.log("✅ Flush Completed");
 }
