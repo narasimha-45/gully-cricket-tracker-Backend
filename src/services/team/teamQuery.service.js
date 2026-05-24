@@ -18,11 +18,13 @@ export const getTeamProfile = async (teamName) => {
     throw new Error("Team not found");
   }
 
-  const teamStats = await OverallTeamStats.findOne({ teamId: profile._id }).lean();
-  
+  const teamStats = await OverallTeamStats.findOne({
+    teamId: profile._id,
+  }).lean();
+
   let team = {
     ...profile,
-    stats: teamStats || {}
+    stats: teamStats || {},
   };
 
   // 2. If players array is empty, fallback to Match history
@@ -30,19 +32,20 @@ export const getTeamProfile = async (teamName) => {
     const latestMatch = await Match.findOne({
       $or: [
         { "teams.teamA.name": { $regex: new RegExp(`^${teamName}$`, "i") } },
-        { "teams.teamB.name": { $regex: new RegExp(`^${teamName}$`, "i") } }
-      ]
+        { "teams.teamB.name": { $regex: new RegExp(`^${teamName}$`, "i") } },
+      ],
     })
       .sort({ createdAt: -1 })
       .lean();
 
     if (latestMatch) {
-      const matchTeam = latestMatch.teams.teamA.name.toLowerCase() === teamName.toLowerCase() 
-        ? latestMatch.teams.teamA 
-        : latestMatch.teams.teamB;
-      
+      const matchTeam =
+        latestMatch.teams.teamA.name.toLowerCase() === teamName.toLowerCase()
+          ? latestMatch.teams.teamA
+          : latestMatch.teams.teamB;
+
       // Convert string names to the format expected by the frontend
-      team.players = (matchTeam.players || []).map(name => ({ name }));
+      team.players = (matchTeam.players || []).map((name) => ({ name }));
     }
   }
 
@@ -72,10 +75,7 @@ export const getTeamMatches = async (teamName, query = {}) => {
   const skip = (page - 1) * limit;
 
   return await Match.find({
-    $or: [
-      { "teams.teamA.name": teamName },
-      { "teams.teamB.name": teamName },
-    ],
+    $or: [{ "teams.teamA.name": teamName }, { "teams.teamB.name": teamName }],
   })
     .sort({ createdAt: -1 })
     .skip(skip)
@@ -92,23 +92,23 @@ export const getSeasonTeams = async (seasonId) => {
     .sort({ points: -1 })
     .populate("teamId", "name")
     .lean();
-    
-  return stats.map(s => ({
+
+  return stats.map((s) => ({
     _id: s.teamId?._id,
     name: s.teamId?.name,
     stats: s,
-    seasonId
+    seasonId,
   }));
 };
 
 export const getAllTeams = async () => {
   const profiles = await TeamProfile.find({}).lean();
-  
-  return profiles.map(p => ({
+
+  return profiles.map((p) => ({
     _id: p._id,
     name: p.name,
   }));
-}
+};
 
 /* ======================================================
    POINTS TABLE
@@ -118,12 +118,12 @@ export const getPointsTable = async (seasonId) => {
   const stats = await SeasonTeamStats.find({ seasonId })
     .populate("teamId", "name")
     .lean();
-    
-  const teams = stats.map(s => ({
+
+  const teams = stats.map((s) => ({
     _id: s.teamId?._id,
     name: s.teamId?.name,
     stats: s,
-    seasonId
+    seasonId,
   }));
 
   return teams
@@ -151,47 +151,148 @@ export const getPointsTable = async (seasonId) => {
     });
 };
 
+/* ======================================================
+   TEAM PLAYERS
+====================================================== */
+
+export const getTeamPlayers = async (teamId) => {
+  /* =========================================
+     FIND TEAM
+  ========================================= */
+
+  const team = await TeamProfile.findById(teamId)
+    .populate({
+      path: "players",
+
+      select: `
+          _id
+          name
+          displayName
+          slug
+          totalMatches
+          seasonsPlayed
+          teamsPlayedFor
+          lastMatchAt
+          createdAt
+        `,
+    })
+    .lean();
+
+  /* =========================================
+     TEAM NOT FOUND
+  ========================================= */
+
+  if (!team) {
+    throw new Error("Team not found");
+  }
+
+  /* =========================================
+     SORT PLAYERS
+  ========================================= */
+
+  const players = (team.players || []).sort(
+    (a, b) => (b.totalMatches || 0) - (a.totalMatches || 0),
+  );
+
+  /* =========================================
+     RESPONSE
+  ========================================= */
+
+  return {
+    team: {
+      _id: team._id,
+
+      name: team.name,
+
+      displayName: team.displayName,
+
+      slug: team.slug,
+    },
+
+    totalPlayers: players.length,
+
+    players,
+  };
+};
+
 export const getGlobalTeamProfile = async (teamName) => {
-  const profile = await TeamProfile.findOne({ 
-    name: { $regex: new RegExp(`^${teamName}$`, "i") } 
+  const profile = await TeamProfile.findOne({
+    name: { $regex: new RegExp(`^${teamName}$`, "i") },
   }).lean();
-  
+
   if (!profile) {
     throw new Error("Team not found");
   }
-  
-  const statsDoc = await OverallTeamStats.findOne({ teamId: profile._id }).lean();
+
+  const statsDoc = await OverallTeamStats.findOne({
+    teamId: profile._id,
+  }).lean();
   const s = statsDoc || {};
-  
+
   const stats = {
-    played: s.played || 0, wins: s.wins || 0, losses: s.losses || 0, ties: s.ties || 0,
-    runsScored: s.runsScored || 0, wicketsLost: s.wicketsLost || 0, ballsFaced: s.ballsFaced || 0,
-    runsConceded: s.runsConceded || 0, wicketsTaken: s.wicketsTaken || 0, ballsBowled: s.ballsBowled || 0,
+    played: s.played || 0,
+    wins: s.wins || 0,
+    losses: s.losses || 0,
+    ties: s.ties || 0,
+    runsScored: s.runsScored || 0,
+    wicketsLost: s.wicketsLost || 0,
+    ballsFaced: s.ballsFaced || 0,
+    runsConceded: s.runsConceded || 0,
+    wicketsTaken: s.wicketsTaken || 0,
+    ballsBowled: s.ballsBowled || 0,
     points: s.points || 0,
     highestScore: s.highestScore || { runs: 0, wickets: 0, overs: 0 },
     lowestScore: s.lowestScore || { runs: 0, wickets: 0, overs: 0 },
     defending: s.defending || { wins: [], losses: [] },
     chasing: s.chasing || { wins: [], losses: [] },
-    highestTotalDefended: s.highestTotalDefended || { runs: 0, wickets: 0, overs: 0 },
-    lowestTotalDefended: s.lowestTotalDefended || { runs: 0, wickets: 0, overs: 0 },
-    highestSuccessfulChase: s.highestSuccessfulChase || { runs: 0, wickets: 0, overs: 0 },
-    lowestSuccessfulChase: s.lowestSuccessfulChase || { runs: 0, wickets: 0, overs: 0 },
-    biggestWin: s.biggestWin || { margin: 0, type: null }
+    highestTotalDefended: s.highestTotalDefended || {
+      runs: 0,
+      wickets: 0,
+      overs: 0,
+    },
+    lowestTotalDefended: s.lowestTotalDefended || {
+      runs: 0,
+      wickets: 0,
+      overs: 0,
+    },
+    highestSuccessfulChase: s.highestSuccessfulChase || {
+      runs: 0,
+      wickets: 0,
+      overs: 0,
+    },
+    lowestSuccessfulChase: s.lowestSuccessfulChase || {
+      runs: 0,
+      wickets: 0,
+      overs: 0,
+    },
+    biggestWin: s.biggestWin || { margin: 0, type: null },
   };
 
   // No iteration over teams array needed since OverallTeamStats handles aggregation
 
   if (stats.lowestScore.runs === 9999) stats.lowestScore.runs = 0;
-  if (stats.lowestTotalDefended.runs === 9999) stats.lowestTotalDefended.runs = 0;
-  if (stats.lowestSuccessfulChase.runs === 9999) stats.lowestSuccessfulChase.runs = 0;
+  if (stats.lowestTotalDefended.runs === 9999)
+    stats.lowestTotalDefended.runs = 0;
+  if (stats.lowestSuccessfulChase.runs === 9999)
+    stats.lowestSuccessfulChase.runs = 0;
 
-  const nrr = stats.ballsFaced > 0 && stats.ballsBowled > 0
-    ? (stats.runsScored / (stats.ballsFaced / 6) - stats.runsConceded / (stats.ballsBowled / 6)).toFixed(2)
-    : 0;
+  const nrr =
+    stats.ballsFaced > 0 && stats.ballsBowled > 0
+      ? (
+          stats.runsScored / (stats.ballsFaced / 6) -
+          stats.runsConceded / (stats.ballsBowled / 6)
+        ).toFixed(2)
+      : 0;
 
-  const battingSR = stats.ballsFaced > 0 ? ((stats.runsScored / stats.ballsFaced) * 100).toFixed(2) : 0;
-  const economy = stats.ballsBowled > 0 ? ((stats.runsConceded / stats.ballsBowled) * 6).toFixed(2) : 0;
-  
+  const battingSR =
+    stats.ballsFaced > 0
+      ? ((stats.runsScored / stats.ballsFaced) * 100).toFixed(2)
+      : 0;
+  const economy =
+    stats.ballsBowled > 0
+      ? ((stats.runsConceded / stats.ballsBowled) * 6).toFixed(2)
+      : 0;
+
   const ballsToOvers = (b) => `${Math.floor(b / 6)}.${b % 6}`;
 
   return {
@@ -206,6 +307,6 @@ export const getGlobalTeamProfile = async (teamName) => {
       economy,
       oversFaced: ballsToOvers(stats.ballsFaced),
       oversBowled: ballsToOvers(stats.ballsBowled),
-    }
+    },
   };
 };

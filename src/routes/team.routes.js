@@ -7,6 +7,7 @@ import {
   getPointsTable,
   getTeamStandings,
   getAllTeams,
+  getTeamPlayers,
 } from "../controllers/team.controller.js";
 
 const router = express.Router();
@@ -118,5 +119,8 @@ router.get(
   "/:teamName/matches",
   getTeamMatches
 );
+
+
+router.get("/:teamId/getPlayers",getTeamPlayers);
 
 export default router;

@@ -368,6 +368,7 @@ const ResultSchema =
           "WICKETS",
           "TIE",
           "NO_RESULT",
+          "SUPER_OVER"
         ],
       },
 

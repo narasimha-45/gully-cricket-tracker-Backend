@@ -10,43 +10,48 @@ import { normalizeCompletedMatch } from "./normalizeCompletedMatch.js";
 
 import { processCompletedMatch } from "./processCompletedMatch.service.js";
 import PlayerProfile from "../../models/PlayerProfile.js";
+import { syncTeamPlayers } from "./syncTeamPlayers.js";
 
 /* ======================================================
    CREATE COMPLETED MATCH
 ====================================================== */
 
-export const createCompletedMatch = async (
-  rawMatch
-) => {
+export const createCompletedMatch = async (rawMatch) => {
   /* =========================================
      RESOLVE TEAMS
   ========================================= */
 
-  const teamMap =
-    await resolveTeams(rawMatch);
+  const teamMap = await resolveTeams(rawMatch);
   /* =========================================
      RESOLVE PLAYERS
   ========================================= */
 
-  const playerMap =
-    await resolvePlayers(rawMatch);
+  const playerMap = await resolvePlayers(rawMatch);
+
+  /* =========================================
+   SYNC TEAM PLAYERS
+========================================= */
+
+  await syncTeamPlayers({
+    rawMatch,
+    teamMap,
+    playerMap,
+  });
   /* =========================================
      NORMALIZE MATCH
   ========================================= */
 
-  const normalizedMatch =
-    await normalizeCompletedMatch({
-      rawMatch,
-      teamMap,
-      playerMap,
-    });
-  
+  const normalizedMatch = await normalizeCompletedMatch({
+    rawMatch,
+    teamMap,
+    playerMap,
+  });
+
   /* =========================================
      CREATE MATCH
   ========================================= */
 
-  const createdMatch =
-    await Match.create(normalizedMatch);
+  const createdMatch = await Match.create(normalizedMatch);
 
   /* =========================================
      UPDATE SEASON MATCH COUNT
@@ -60,17 +65,14 @@ export const createCompletedMatch = async (
       $inc: {
         matchesCount: 1,
       },
-    }
+    },
   );
-
 
   /* =========================================
      PROCESS ANALYTICS
   ========================================= */
 
-  await processCompletedMatch(
-    createdMatch.toObject()
-  );
+  await processCompletedMatch(createdMatch.toObject());
 
   /* =========================================
      RETURN MATCH
