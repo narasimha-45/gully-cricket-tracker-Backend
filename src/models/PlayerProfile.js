@@ -1,62 +1,62 @@
 import mongoose from "mongoose";
 
-const PlayerProfileSchema =
-  new mongoose.Schema(
-    {
-      name: {
-        type: String,
-        required: true,
-        unique: true,
-        trim: true,
-        lowercase: true,
-      },
+const PlayerProfileSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: true,
+      unique: true,
+      trim: true,
+      lowercase: true,
+    },
 
-      slug: {
-        type: String,
-        unique: true,
-        trim: true,
-        lowercase: true,
-      },
+    slug: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+      lowercase: true,
+    },
 
-      displayName: {
-        type: String,
-        trim: true,
-      },
+    displayName: {
+      type: String,
+      trim: true,
+    },
 
-      seasonsPlayed: [
-        {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "Season",
-        },
-      ],
-
-      teamsPlayedFor: [
-        {
-          type: mongoose.Schema.Types.ObjectId,
-          ref: "TeamProfile",
-        },
-      ],
-
-      debutSeasonId: {
+    seasonsPlayed: [
+      {
         type: mongoose.Schema.Types.ObjectId,
         ref: "Season",
-        default: null,
       },
+    ],
 
-      totalMatches: {
-        type: Number,
-        default: 0,
+    teamsPlayedFor: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "TeamProfile",
       },
+    ],
 
-      lastMatchAt: {
-        type: Date,
-        default: null,
-      },
+    debutSeasonId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Season",
+      default: null,
     },
-    {
-      timestamps: true,
+
+    totalMatches: {
+      type: Number,
+      default: 0,
     },
-  );
+
+    lastMatchAt: {
+      type: Date,
+      default: null,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
 
 /* =========================================
    INDEXES
@@ -71,18 +71,32 @@ PlayerProfileSchema.index({
    HOOKS
 ========================================= */
 
-PlayerProfileSchema.pre("save", function () {
-  if (!this.slug) {
+PlayerProfileSchema.pre("validate", async function () {
+  // Generate slug automatically
+  if (!this.slug && this.name) {
     this.slug = this.name
       .toLowerCase()
       .trim()
-      .replace(/\s+/g, "-");
+      .replace(/\s+/g, "-")
+      .replace(/[^\w-]+/g, "");
   }
 
-  if (!this.displayName) {
-    this.displayName = this.name;
+  // Auto set displayName
+  if (!this.displayName && this.name) {
+    this.displayName = this.name
+      .split(" ")
+      .map(
+        (word) =>
+          word.charAt(0).toUpperCase() +
+          word.slice(1),
+      )
+      .join(" ");
   }
 });
+
+/* =========================================
+   MODEL
+========================================= */
 
 const PlayerProfile =
   mongoose.models.PlayerProfile ||
