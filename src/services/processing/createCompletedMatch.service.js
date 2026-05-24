@@ -9,6 +9,7 @@ import { resolvePlayers } from "../../resolvers/resolvePlayers.js";
 import { normalizeCompletedMatch } from "./normalizeCompletedMatch.js";
 
 import { processCompletedMatch } from "./processCompletedMatch.service.js";
+import PlayerProfile from "../../models/PlayerProfile.js";
 
 /* ======================================================
    CREATE COMPLETED MATCH
@@ -61,6 +62,7 @@ export const createCompletedMatch = async (
       },
     }
   );
+
 
   /* =========================================
      PROCESS ANALYTICS

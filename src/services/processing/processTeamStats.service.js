@@ -1,96 +1,75 @@
-import {
-  getTeamStatsAccumulator,
-} from "./shared/accumulatorHelpers.js";
+import { getTeamStatsAccumulator } from "./shared/accumulatorHelpers.js";
 
-import {
-  pushRecentMatch,
-} from "./shared/helpers.js";
+import { pushRecentMatch } from "./shared/helpers.js";
 
 /* ======================================================
    PROCESS TEAM STATS
 ====================================================== */
 
-export const processTeamStats = async (
-  match,
-  accumulators
-) => {
-  const seasonId =
-    match.seasonId;
+export const processTeamStats = async (match, accumulators) => {
+  const seasonId = match.seasonId;
 
-  const matchId =
-    match._id;
+  const matchId = match._id;
 
-  const winnerTeamId =
-    match.result?.winnerTeamId;
+  const winnerTeamId = match.result?.winnerTeamId;
 
-  const teamAId =
-    match.teams.teamA.teamId;
+  const teamAId = match.teams.teamA.teamId;
 
-  const teamBId =
-    match.teams.teamB.teamId;
+  const teamBId = match.teams.teamB.teamId;
 
   /* =========================================
      GET TEAM ACCUMULATORS
   ========================================= */
 
-  const overallTeamA =
-    getTeamStatsAccumulator({
-      map:
-        accumulators.overallTeamStats,
+  const overallTeamA = getTeamStatsAccumulator({
+    map: accumulators.overallTeamStats,
 
-      key: String(teamAId),
+    key: String(teamAId),
 
-      payload: {
-        teamId: teamAId,
-      },
-    });
+    payload: {
+      teamId: teamAId,
+    },
+  });
 
-  const overallTeamB =
-    getTeamStatsAccumulator({
-      map:
-        accumulators.overallTeamStats,
+  const overallTeamB = getTeamStatsAccumulator({
+    map: accumulators.overallTeamStats,
 
-      key: String(teamBId),
+    key: String(teamBId),
 
-      payload: {
-        teamId: teamBId,
-      },
-    });
+    payload: {
+      teamId: teamBId,
+    },
+  });
 
-  const seasonTeamA =
-    getTeamStatsAccumulator({
-      map:
-        accumulators.seasonTeamStats,
+  if (!overallTeamA.seasonsPlayed) overallTeamA.seasonsPlayed = new Set();
+  if (!overallTeamB.seasonsPlayed) overallTeamB.seasonsPlayed = new Set();
 
-      key:
-        `${seasonId}_${teamAId}`,
+  overallTeamA.seasonsPlayed.add(String(seasonId));
+  overallTeamB.seasonsPlayed.add(String(seasonId));
 
-      payload: {
-        seasonId,
-        teamId: teamAId,
-      },
-    });
+  const seasonTeamA = getTeamStatsAccumulator({
+    map: accumulators.seasonTeamStats,
 
-  const seasonTeamB =
-    getTeamStatsAccumulator({
-      map:
-        accumulators.seasonTeamStats,
+    key: `${seasonId}_${teamAId}`,
 
-      key:
-        `${seasonId}_${teamBId}`,
+    payload: {
+      seasonId,
+      teamId: teamAId,
+    },
+  });
 
-      payload: {
-        seasonId,
-        teamId: teamBId,
-      },
-    });
+  const seasonTeamB = getTeamStatsAccumulator({
+    map: accumulators.seasonTeamStats,
 
-  const allTeams = [
-    overallTeamA,
-    overallTeamB,
-    seasonTeamA,
-    seasonTeamB,
-  ];
+    key: `${seasonId}_${teamBId}`,
+
+    payload: {
+      seasonId,
+      teamId: teamBId,
+    },
+  });
+
+  const allTeams = [overallTeamA, overallTeamB, seasonTeamA, seasonTeamB];
 
   /* =========================================
      MATCH COUNTS
@@ -104,10 +83,7 @@ export const processTeamStats = async (
      MATCH RESULTS
   ========================================= */
 
-  if (
-    String(winnerTeamId) ===
-    String(teamAId)
-  ) {
+  if (String(winnerTeamId) === String(teamAId)) {
     overallTeamA.stats.wins += 1;
 
     seasonTeamA.stats.wins += 1;
@@ -119,10 +95,7 @@ export const processTeamStats = async (
     overallTeamA.stats.points += 2;
 
     seasonTeamA.stats.points += 2;
-  } else if (
-    String(winnerTeamId) ===
-    String(teamBId)
-  ) {
+  } else if (String(winnerTeamId) === String(teamBId)) {
     overallTeamB.stats.wins += 1;
 
     seasonTeamB.stats.wins += 1;
@@ -147,91 +120,55 @@ export const processTeamStats = async (
   ========================================= */
 
   for (const innings of match.innings) {
-    const battingTeamId =
-      innings.battingTeamId;
+    const battingTeamId = innings.battingTeamId;
 
-    const bowlingTeamId =
-      innings.bowlingTeamId;
+    const bowlingTeamId = innings.bowlingTeamId;
 
     const battingOverall =
-      String(battingTeamId) ===
-      String(teamAId)
-        ? overallTeamA
-        : overallTeamB;
+      String(battingTeamId) === String(teamAId) ? overallTeamA : overallTeamB;
 
     const battingSeason =
-      String(battingTeamId) ===
-      String(teamAId)
-        ? seasonTeamA
-        : seasonTeamB;
+      String(battingTeamId) === String(teamAId) ? seasonTeamA : seasonTeamB;
 
     const bowlingOverall =
-      String(bowlingTeamId) ===
-      String(teamAId)
-        ? overallTeamA
-        : overallTeamB;
+      String(bowlingTeamId) === String(teamAId) ? overallTeamA : overallTeamB;
 
     const bowlingSeason =
-      String(bowlingTeamId) ===
-      String(teamAId)
-        ? seasonTeamA
-        : seasonTeamB;
+      String(bowlingTeamId) === String(teamAId) ? seasonTeamA : seasonTeamB;
 
     /* =========================================
        TEAM TOTALS
     ========================================= */
 
-    for (const team of [
-      battingOverall,
-      battingSeason,
-    ]) {
-      team.stats.runsScored +=
-        innings.totalRuns || 0;
+    for (const team of [battingOverall, battingSeason]) {
+      team.stats.runsScored += innings.totalRuns || 0;
 
-      team.stats.wicketsLost +=
-        innings.wickets || 0;
+      team.stats.wicketsLost += innings.wickets || 0;
 
-      team.stats.ballsFaced +=
-        innings.balls || 0;
+      team.stats.ballsFaced += innings.balls || 0;
     }
 
-    for (const team of [
-      bowlingOverall,
-      bowlingSeason,
-    ]) {
-      team.stats.runsConceded +=
-        innings.totalRuns || 0;
+    for (const team of [bowlingOverall, bowlingSeason]) {
+      team.stats.runsConceded += innings.totalRuns || 0;
 
-      team.stats.wicketsTaken +=
-        innings.wickets || 0;
+      team.stats.wicketsTaken += innings.wickets || 0;
 
-      team.stats.ballsBowled +=
-        innings.balls || 0;
+      team.stats.ballsBowled += innings.balls || 0;
     }
 
     /* =========================================
        HIGHEST SCORE
     ========================================= */
 
-    for (const team of [
-      battingOverall,
-      battingSeason,
-    ]) {
-      if (
-        innings.totalRuns >
-        team.stats.highestScore
-          .runs
-      ) {
+    const ballsToOvers = (balls = 0) =>
+      Math.floor(balls / 6) + (balls % 6) / 10;
+
+    for (const team of [battingOverall, battingSeason]) {
+      if (innings.totalRuns > team.stats.highestScore.runs) {
         team.stats.highestScore = {
-          runs:
-            innings.totalRuns,
-
-          wickets:
-            innings.wickets,
-
-          balls:
-            innings.balls,
-
+          runs: innings.totalRuns,
+          wickets: innings.wickets,
+          overs: ballsToOvers(innings.balls || 0), // ← convert
           matchId,
         };
       }
@@ -241,27 +178,15 @@ export const processTeamStats = async (
        LOWEST SCORE
     ========================================= */
 
-    for (const team of [
-      battingOverall,
-      battingSeason,
-    ]) {
+    for (const team of [battingOverall, battingSeason]) {
       if (
-        team.stats.lowestScore
-          .runs === null ||
-        innings.totalRuns <
-          team.stats.lowestScore
-            .runs
+        team.stats.lowestScore.runs === null ||
+        innings.totalRuns < team.stats.lowestScore.runs
       ) {
         team.stats.lowestScore = {
-          runs:
-            innings.totalRuns,
-
-          wickets:
-            innings.wickets,
-
-          balls:
-            innings.balls,
-
+          runs: innings.totalRuns,
+          wickets: innings.wickets,
+          overs: ballsToOvers(innings.balls || 0),
           matchId,
         };
       }
@@ -272,52 +197,34 @@ export const processTeamStats = async (
      CHASE / DEFEND
   ========================================= */
 
-  if (
-    match.innings.length >= 2
-  ) {
-    const firstInnings =
-      match.innings[0];
+  if (match.innings.length >= 2) {
+    const firstInnings = match.innings[0];
 
-    const secondInnings =
-      match.innings[1];
+    const secondInnings = match.innings[1];
 
     const firstBattingWon =
-      String(
-        firstInnings.battingTeamId
-      ) ===
-      String(winnerTeamId);
+      String(firstInnings.battingTeamId) === String(winnerTeamId);
 
     const secondBattingWon =
-      String(
-        secondInnings.battingTeamId
-      ) ===
-      String(winnerTeamId);
+      String(secondInnings.battingTeamId) === String(winnerTeamId);
 
     const firstOverall =
-      String(
-        firstInnings.battingTeamId
-      ) === String(teamAId)
+      String(firstInnings.battingTeamId) === String(teamAId)
         ? overallTeamA
         : overallTeamB;
 
     const firstSeason =
-      String(
-        firstInnings.battingTeamId
-      ) === String(teamAId)
+      String(firstInnings.battingTeamId) === String(teamAId)
         ? seasonTeamA
         : seasonTeamB;
 
     const secondOverall =
-      String(
-        secondInnings.battingTeamId
-      ) === String(teamAId)
+      String(secondInnings.battingTeamId) === String(teamAId)
         ? overallTeamA
         : overallTeamB;
 
     const secondSeason =
-      String(
-        secondInnings.battingTeamId
-      ) === String(teamAId)
+      String(secondInnings.battingTeamId) === String(teamAId)
         ? seasonTeamA
         : seasonTeamB;
 
@@ -326,34 +233,16 @@ export const processTeamStats = async (
     ========================================= */
 
     if (firstBattingWon) {
-      for (const team of [
-        firstOverall,
-        firstSeason,
-      ]) {
-        pushRecentMatch(
-          team.stats.wonBattingFirst,
-          matchId
-        );
+      for (const team of [firstOverall, firstSeason]) {
+        pushRecentMatch(team.stats.wonBattingFirst, matchId);
 
-        pushRecentMatch(
-          team.stats.defendedTotals,
-          matchId
-        );
+        pushRecentMatch(team.stats.defendedTotals, matchId);
       }
 
-      for (const team of [
-        secondOverall,
-        secondSeason,
-      ]) {
-        pushRecentMatch(
-          team.stats.lostBowlingFirst,
-          matchId
-        );
+      for (const team of [secondOverall, secondSeason]) {
+        pushRecentMatch(team.stats.lostBowlingFirst, matchId);
 
-        pushRecentMatch(
-          team.stats.failedChases,
-          matchId
-        );
+        pushRecentMatch(team.stats.failedChases, matchId);
       }
     }
 
@@ -362,34 +251,16 @@ export const processTeamStats = async (
     ========================================= */
 
     if (secondBattingWon) {
-      for (const team of [
-        secondOverall,
-        secondSeason,
-      ]) {
-        pushRecentMatch(
-          team.stats.wonBowlingFirst,
-          matchId
-        );
+      for (const team of [secondOverall, secondSeason]) {
+        pushRecentMatch(team.stats.wonBowlingFirst, matchId);
 
-        pushRecentMatch(
-          team.stats.successfulChases,
-          matchId
-        );
+        pushRecentMatch(team.stats.successfulChases, matchId);
       }
 
-      for (const team of [
-        firstOverall,
-        firstSeason,
-      ]) {
-        pushRecentMatch(
-          team.stats.lostBattingFirst,
-          matchId
-        );
+      for (const team of [firstOverall, firstSeason]) {
+        pushRecentMatch(team.stats.lostBattingFirst, matchId);
 
-        pushRecentMatch(
-          team.stats.failedDefends,
-          matchId
-        );
+        pushRecentMatch(team.stats.failedDefends, matchId);
       }
     }
 
@@ -398,28 +269,17 @@ export const processTeamStats = async (
     ========================================= */
 
     if (secondBattingWon) {
-      const target =
-        firstInnings.totalRuns + 1;
+      const target = firstInnings.totalRuns + 1;
 
-      const achieved =
-        secondInnings.totalRuns;
+      const achieved = secondInnings.totalRuns;
 
-      for (const team of [
-        secondOverall,
-        secondSeason,
-      ]) {
-        if (
-          target >
-          team.stats
-            .highestSuccessfulChase
-            .target
-        ) {
-          team.stats.highestSuccessfulChase =
-            {
-              target,
-              achieved,
-              matchId,
-            };
+      for (const team of [secondOverall, secondSeason]) {
+        if (target > team.stats.highestSuccessfulChase.target) {
+          team.stats.highestSuccessfulChase = {
+            target,
+            achieved,
+            matchId,
+          };
         }
       }
     }
@@ -429,27 +289,17 @@ export const processTeamStats = async (
     ========================================= */
 
     if (firstBattingWon) {
-      const defended =
-        firstInnings.totalRuns;
+      const defended = firstInnings.totalRuns;
 
-      for (const team of [
-        firstOverall,
-        firstSeason,
-      ]) {
+      for (const team of [firstOverall, firstSeason]) {
         if (
-          team.stats
-            .lowestDefendedScore
-            .defended === 0 ||
-          defended <
-            team.stats
-              .lowestDefendedScore
-              .defended
+          team.stats.lowestDefendedScore.defended === 0 ||
+          defended < team.stats.lowestDefendedScore.defended
         ) {
-          team.stats.lowestDefendedScore =
-            {
-              defended,
-              matchId,
-            };
+          team.stats.lowestDefendedScore = {
+            defended,
+            matchId,
+          };
         }
       }
     }
@@ -459,24 +309,14 @@ export const processTeamStats = async (
     ========================================= */
 
     if (firstBattingWon) {
-      const margin =
-        firstInnings.totalRuns -
-        secondInnings.totalRuns;
+      const margin = firstInnings.totalRuns - secondInnings.totalRuns;
 
-      for (const team of [
-        firstOverall,
-        firstSeason,
-      ]) {
-        if (
-          margin >
-          team.stats.biggestWins
-            .byRuns.margin
-        ) {
-          team.stats.biggestWins.byRuns =
-            {
-              margin,
-              matchId,
-            };
+      for (const team of [firstOverall, firstSeason]) {
+        if (margin > team.stats.biggestWins.byRuns.margin) {
+          team.stats.biggestWins.byRuns = {
+            margin,
+            matchId,
+          };
         }
       }
     }
@@ -486,24 +326,14 @@ export const processTeamStats = async (
     ========================================= */
 
     if (secondBattingWon) {
-      const margin =
-        10 -
-        secondInnings.wickets;
+      const margin = 10 - secondInnings.wickets;
 
-      for (const team of [
-        secondOverall,
-        secondSeason,
-      ]) {
-        if (
-          margin >
-          team.stats.biggestWins
-            .byWickets.margin
-        ) {
-          team.stats.biggestWins.byWickets =
-            {
-              margin,
-              matchId,
-            };
+      for (const team of [secondOverall, secondSeason]) {
+        if (margin > team.stats.biggestWins.byWickets.margin) {
+          team.stats.biggestWins.byWickets = {
+            margin,
+            matchId,
+          };
         }
       }
     }

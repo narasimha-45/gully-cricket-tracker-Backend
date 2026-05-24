@@ -80,9 +80,46 @@ export const getTeamStandings = async (seasonId) => {
     ====================================== */
 
   if (seasonId && seasonId !== "all") {
-    const teams = await SeasonTeamStats.find({
-      seasonId: new mongoose.Types.ObjectId(seasonId),
-    }).lean();
+    const teams = await SeasonTeamStats.aggregate([
+      {
+        $match: {
+          seasonId: new mongoose.Types.ObjectId(seasonId),
+        },
+      },
+
+      /* =================================
+         TEAM LOOKUP
+      ================================= */
+
+      {
+        $lookup: {
+          from: "teamprofiles",
+
+          localField: "teamId",
+
+          foreignField: "_id",
+
+          as: "team",
+        },
+      },
+
+      {
+        $unwind: {
+          path: "$team",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+
+      /* =================================
+         ADD TEAM NAME
+      ================================= */
+
+      {
+        $addFields: {
+          name: "$team.name",
+        },
+      },
+    ]);
 
     return teams.map(formatTeamRecord).sort(sortByPointsAndNrr);
   }
