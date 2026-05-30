@@ -21,6 +21,8 @@ export const createCompletedMatch = async (rawMatch) => {
      RESOLVE TEAMS
   ========================================= */
 
+  console.log("Match Received",rawMatch);
+
   const teamMap = await resolveTeams(rawMatch);
   /* =========================================
      RESOLVE PLAYERS
